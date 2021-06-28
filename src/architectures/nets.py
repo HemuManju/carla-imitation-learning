@@ -3,6 +3,42 @@ import pytorch_lightning as pl
 import torch
 
 
+class ConvNet1(pl.LightningModule):
+    def __init__(self, hparams):
+        super(ConvNet1, self).__init__()
+
+        # Parameters
+        obs_size = hparams['obs_size']
+        n_actions = hparams['n_actions']
+
+        self.example_input_array = torch.randn((1, 1, 256, 256))
+
+        # Architecture
+        self.cnn_base = nn.Sequential(  # input shape (4, 256, 256)
+            nn.Conv2d(obs_size, 32, kernel_size=7, stride=3),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=3),
+            nn.Conv2d(32, 64, kernel_size=5, stride=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(64, 128, kernel_size=4, stride=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
+            nn.Conv2d(128, 256, kernel_size=3, stride=1),
+            nn.ReLU(),
+            nn.MaxPool2d(kernel_size=2),
+        )
+        self.fc = nn.Sequential(nn.Linear(256, 200), nn.ReLU(),
+                                nn.Linear(200, 48), nn.ReLU(),
+                                nn.Linear(48, n_actions))
+
+    def forward(self, x):
+        x = self.cnn_base(x)
+        x = torch.flatten(x, start_dim=1)
+        q_values = self.fc(x)
+        return q_values
+
+
 class CNNAutoEncoder(pl.LightningModule):
     """
     Simple auto-encoder with MLP network

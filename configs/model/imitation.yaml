@@ -1,0 +1,22 @@
+# @package _global_
+
+logs: ['Log1', 'Log2', 'Log3', 'Log4', 'Log5', 'Log6']
+camera: ['camera']
+
+##-----------------------------------------------------#
+# Training parameters
+NUM_EPOCHS: 50
+BATCH_SIZE: 64
+LEARNING_RATE: 0.001
+DROP_OUT: 0.20
+TEST_SIZE: 0.15
+VALID_SIZE: 0.15
+
+obs_size: 1
+n_actions: 9
+
+train_logs: ['Log1']
+test_logs: ['Log2']
+image_size: [1, 224, 224]
+alpha: 0.75
+beta: 0.1
