@@ -12,8 +12,9 @@ DROP_OUT: 0.20
 TEST_SIZE: 0.15
 VALID_SIZE: 0.15
 
-obs_size: 1
+obs_size: 4
 n_actions: 9
+frame_skip: 4
 
 train_logs: ['Log1']
 test_logs: ['Log2']

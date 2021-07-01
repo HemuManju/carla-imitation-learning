@@ -1,5 +1,7 @@
+import os
+
 import numpy as np
-from skimage.io import imread_collection
+from skimage.io import imread_collection, imread
 
 from sklearn.model_selection import train_test_split
 
@@ -43,6 +45,93 @@ class TorchDataset(Dataset):
         return self.x.shape[0]
 
 
+class LargeTorchDataset(Dataset):
+    def __init__(self, hparams, dataset_type='train'):
+        # Read path
+        log = hparams['train_logs'][0]
+        self.read_path = hparams[
+            'data_dir'] + 'processed' + '/' + log + '/' + dataset_type + '/' + hparams[
+                'camera']
+        self.image_files = os.listdir(self.read_path)
+
+        # Get corresponding targets (autopilot actions)
+        self.file_idx = [
+            int(name.split('.')[0]) - 1 for name in self.image_files
+        ]  # file name starts from 1
+        autopilot_actions = np.genfromtxt(hparams['data_dir'] + 'raw' + '/' +
+                                          log + '/state.csv',
+                                          delimiter=',',
+                                          usecols=(4, 5, 6, 7))
+        action_ind = continous_to_discreet(autopilot_actions)
+        actions = np.stack(action_ind, axis=-1)
+        self.y = actions[self.file_idx, None]
+
+        # This step normalizes image between 0 and 1
+        self.transform = transforms.ToTensor()
+
+    def _load_file(self, file_name):
+        image = imread(self.read_path + '/' + file_name, as_gray=True)
+        return image
+
+    def __getitem__(self, index):
+        # Load
+        x = self._load_file(self.image_files[index])
+
+        # Transform
+        x = self.transform(x).type(torch.float32)
+        y = torch.from_numpy(self.y[index]).type(torch.long)
+        return x, y.squeeze(-1)
+
+    def __len__(self):
+        return len(self.image_files)
+
+
+class SequentialTorchDataset(Dataset):
+    def __init__(self, hparams, dataset_type='train'):
+        # Read path
+        self.hparams = hparams
+        log = hparams['train_logs'][0]
+
+        self.read_path = hparams[
+            'data_dir'] + 'processed' + '/' + log + '/' + dataset_type + '/' + hparams[
+                'camera']
+        self.image_files = os.listdir(self.read_path)
+
+        # Get corresponding targets (autopilot actions)
+        self.file_idx = [
+            int(name.split('.')[0]) - 1 for name in self.image_files
+        ]  # file name starts from 1
+        autopilot_actions = np.genfromtxt(hparams['data_dir'] + 'raw' + '/' +
+                                          log + '/state.csv',
+                                          delimiter=',',
+                                          usecols=(4, 5, 6, 7))
+        action_ind = continous_to_discreet(autopilot_actions)
+        actions = np.stack(action_ind, axis=-1)
+        self.y = actions[self.file_idx, None]
+
+        # This step normalizes image between 0 and 1
+        self.transform = transforms.ToTensor()
+
+    def _load_file(self, index):
+        files = self.image_files[index:index + self.hparams['frame_skip']]
+        read_path = [self.read_path + '/' + file_name for file_name in files]
+        images = imread_collection(read_path).concatenate()
+        images = np.dot(images[..., :], [0.299, 0.587, 0.114]) / 255
+        return images
+
+    def __getitem__(self, index):
+        # Load the image
+        x = self._load_file(index)
+
+        # Transform
+        x = torch.from_numpy(x).type(torch.float32)
+        y = torch.from_numpy(self.y[index]).type(torch.long)
+        return x, y.squeeze(-1)
+
+    def __len__(self):
+        return len(self.image_files) - self.hparams['frame_skip']
+
+
 def train_val_test_iterator(hparams, data_split_type=None):
     """A function to get train, validation, and test data.
 
@@ -81,6 +170,50 @@ def train_val_test_iterator(hparams, data_split_type=None):
                                                  batch_size=BATCH_SIZE)
 
     test_data = TorchDataset(data['test'])
+    data_iterator['test_dataloader'] = DataLoader(test_data,
+                                                  batch_size=BATCH_SIZE)
+
+    return data_iterator
+
+
+def large_train_val_test_iterator(hparams):
+    # Parameters
+    BATCH_SIZE = hparams['BATCH_SIZE']
+
+    # Create train, validation, test datasets
+    data_iterator = {}
+    train_data = LargeTorchDataset(hparams, dataset_type='train')
+    data_iterator['train_dataloader'] = DataLoader(train_data,
+                                                   batch_size=BATCH_SIZE,
+                                                   shuffle=True)
+
+    valid_data = LargeTorchDataset(hparams, dataset_type='val')
+    data_iterator['val_dataloader'] = DataLoader(valid_data,
+                                                 batch_size=BATCH_SIZE)
+
+    test_data = LargeTorchDataset(hparams, dataset_type='test')
+    data_iterator['test_dataloader'] = DataLoader(test_data,
+                                                  batch_size=BATCH_SIZE)
+
+    return data_iterator
+
+
+def sequential_train_val_test_iterator(hparams):
+    # Parameters
+    BATCH_SIZE = hparams['BATCH_SIZE']
+
+    # Create train, validation, test datasets
+    data_iterator = {}
+    train_data = SequentialTorchDataset(hparams, dataset_type='train')
+    data_iterator['train_dataloader'] = DataLoader(train_data,
+                                                   batch_size=BATCH_SIZE,
+                                                   shuffle=False)
+
+    valid_data = SequentialTorchDataset(hparams, dataset_type='val')
+    data_iterator['val_dataloader'] = DataLoader(valid_data,
+                                                 batch_size=BATCH_SIZE)
+
+    test_data = SequentialTorchDataset(hparams, dataset_type='test')
     data_iterator['test_dataloader'] = DataLoader(test_data,
                                                   batch_size=BATCH_SIZE)
 
