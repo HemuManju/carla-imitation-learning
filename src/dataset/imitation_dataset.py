@@ -116,7 +116,7 @@ class SequentialTorchDataset(Dataset):
         files = self.image_files[index:index + self.hparams['frame_skip']]
         read_path = [self.read_path + '/' + file_name for file_name in files]
         images = imread_collection(read_path).concatenate()
-        images = np.dot(images[..., :], [0.299, 0.587, 0.114]) / 255
+        images = np.dot(images[..., :], [0.299, 0.587, 0.114]) / 255.0
         return images
 
     def __getitem__(self, index):

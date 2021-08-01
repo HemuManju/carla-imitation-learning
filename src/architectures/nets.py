@@ -137,6 +137,70 @@ class CNNAutoEncoder(pl.LightningModule):
         h = h.view(h.size(0), -1)  # Flatten
         z, mu, log_var = self.bottleneck(h)
         z = self.z_to_hidden(z)
+
         z = z.view(z.size(0), self.hidden_size, 1, 1)  # Unflatten
         x_out = self.decoder(z)
         return x_out, mu, log_var
+
+
+class CNNAuxNet(pl.LightningModule):
+    '''
+    Contains a a simple auto-encoder with decoder and MLPs for auxiliary tasks.
+    '''
+    def __init__(self, hparams, z_size: int = 32):
+        super(CNNAuxNet, self).__init__()
+
+        # Parameters
+        obs_size = hparams['obs_size']
+        image_size = hparams.image_size
+        n_actions = hparams['n_actions']
+
+        # self.example_input_array = torch.randn((1, *image_size))
+        self.example_input_array = torch.randn((1, obs_size, 256, 256))
+
+
+        self.encoder = nn.Sequential(
+            nn.Conv2d(obs_size, 32, kernel_size=4, stride=2), nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2), nn.ReLU(),
+            nn.Conv2d(64, 128, kernel_size=6, stride=3), nn.ReLU(),
+            nn.Conv2d(128, 128, kernel_size=6, stride=3), nn.ReLU())
+
+        self.hidden_size = self._get_flatten_size()
+
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose2d(128, 128, kernel_size=6, stride=3, output_padding=1),
+            nn.ReLU(), nn.ConvTranspose2d(128, 64, kernel_size=6, stride=3, output_padding=2),
+            nn.ReLU(), nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, output_padding=1),
+            nn.ReLU(), nn.ConvTranspose2d(32, obs_size, kernel_size=4, stride=2),
+            nn.Sigmoid())
+
+
+        self.trafficlight = nn.Sequential(nn.Linear(3200, 64), nn.ReLU(),
+                                nn.Linear(64, 32), nn.ReLU(),
+                                nn.Linear(32, 3)) # red, green, none
+
+        self.autopilotAC = nn.Sequential(nn.Linear(3200, 200), nn.ReLU(),
+                        nn.Linear(200, 48), nn.ReLU(),
+                        nn.Linear(48, n_actions))
+
+        
+
+    @torch.no_grad()
+    def _get_flatten_size(self):
+        x = self.encoder(self.example_input_array)
+        return x.shape[-1]
+
+
+    def forward(self, x):
+        h = self.encoder(x)
+        d_out = self.decoder(h)
+
+        hflat = torch.flatten(h, start_dim=1)
+        act_out = self.autopilotAC(hflat)
+        traffic_out = self.trafficlight(hflat)
+        
+        out = [d_out, act_out, traffic_out]
+
+        return out
+    
+

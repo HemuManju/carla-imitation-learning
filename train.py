@@ -4,7 +4,7 @@ import splitfolders
 
 from src.dataset import vae_dataset, imitation_dataset
 
-from src.architectures.nets import CNNAutoEncoder, ConvNet1, ConvNetRawSegment
+from src.architectures.nets import CNNAutoEncoder, CNNAuxNet, ConvNet1, ConvNetRawSegment, CNNAuxNet
 
 from src.models.vae import VAE
 from src.models.imitation import Imitation
@@ -89,7 +89,7 @@ with skip_run('skip', 'leave_one_out_data_vae') as check, check():
                          callbacks=[checkpoint_callback])
     trainer.fit(model)
 
-with skip_run('run', 'behavior_cloning') as check, check():
+with skip_run('skip', 'behavior_cloning') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
 
@@ -124,6 +124,45 @@ with skip_run('run', 'behavior_cloning') as check, check():
                              logger=logger,
                              callbacks=[checkpoint_callback])
         trainer.fit(model)
+
+
+with skip_run('run', 'test') as check, check():
+    # Load the parameters
+    hparams = compose(config_name="config", overrides=['model=imitation'])
+
+    camera_type = ['camera', 'semantic']
+    for camera in camera_type:
+        hparams['camera'] = camera
+
+        # Random seed
+        gpus = get_num_gpus()
+        torch.manual_seed(hparams.pytorch_seed)
+
+        # Checkpoint
+        checkpoint_callback = pl.callbacks.ModelCheckpoint(
+            monitor='val_loss',
+            dirpath=hparams.log_dir,
+            save_top_k=1,
+            filename='imitation',
+            mode='min')
+        logger = pl.loggers.TensorBoardLogger(hparams.log_dir,
+                                              name='imitation')
+
+        # Setup
+        hparams['train_logs'] = ['Log1']
+        net = CNNAuxNet(hparams)
+        output = net(net.example_input_array)
+        # print(output)  # verification
+        data_loader = imitation_dataset.sequential_train_val_test_iterator(
+            hparams)
+        model = Imitation(hparams, net, data_loader)
+        trainer = pl.Trainer(gpus=gpus,
+                             max_epochs=hparams.NUM_EPOCHS,
+                             logger=logger,
+                             callbacks=[checkpoint_callback])
+        trainer.fit(model)
+
+
 
 with skip_run('skip', 'behavior_cloning_with_raw_segmented') as check, check():
     # Load the parameters
