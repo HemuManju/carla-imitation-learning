@@ -2,6 +2,8 @@ import torch
 import pytorch_lightning as pl
 import splitfolders
 
+from src.data.stats import classification_accuracy
+
 from src.dataset import vae_dataset, imitation_dataset
 
 from src.architectures.nets import CNNAutoEncoder, ConvNet1, ConvNetRawSegment
@@ -89,7 +91,7 @@ with skip_run('skip', 'leave_one_out_data_vae') as check, check():
                          callbacks=[checkpoint_callback])
     trainer.fit(model)
 
-with skip_run('run', 'behavior_cloning') as check, check():
+with skip_run('skip', 'behavior_cloning') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
 
@@ -160,3 +162,7 @@ with skip_run('skip', 'behavior_cloning_with_raw_segmented') as check, check():
                              logger=logger,
                              callbacks=[checkpoint_callback])
         trainer.fit(model)
+
+with skip_run('skip', 'algorithm_stats') as check, check():
+    hparams = compose(config_name="config")
+    classification_accuracy(hparams)
