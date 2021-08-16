@@ -193,6 +193,7 @@ class CNNAuxNet(pl.LightningModule):
 
     def forward(self, x):
         h = self.encoder(x)
+        print(h.shape)
         d_out = self.decoder(h)
 
         hflat = torch.flatten(h, start_dim=1)

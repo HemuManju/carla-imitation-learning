@@ -8,4 +8,4 @@ defaults:
 # output paths for hydra logs
 log_dir: logs/${now:%Y-%m-%d}
 # data_dir: data/
-data_dir: ../data/data1/
+data_dir: ../data/data2/

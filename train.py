@@ -126,11 +126,11 @@ with skip_run('skip', 'behavior_cloning') as check, check():
         trainer.fit(model)
 
 
-with skip_run('run', 'test') as check, check():
+with skip_run('run', 'aux') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
 
-    camera_type = ['camera', 'semantic']
+    camera_type = ['camera_sFOV', 'semantic']
     for camera in camera_type:
         hparams['camera'] = camera
 
@@ -161,6 +161,46 @@ with skip_run('run', 'test') as check, check():
                              logger=logger,
                              callbacks=[checkpoint_callback])
         trainer.fit(model)
+
+
+
+with skip_run('skip', 'test') as check, check():
+    # Load the parameters
+    hparams = compose(config_name="config", overrides=['model=imitation'])
+
+    camera_type = ['camera_sFOV', 'semantic']
+    for camera in camera_type:
+        hparams['camera'] = camera
+
+        # Random seed
+        gpus = get_num_gpus()
+        torch.manual_seed(hparams.pytorch_seed)
+
+        # Checkpoint
+        checkpoint_callback = pl.callbacks.ModelCheckpoint(
+            monitor='val_loss',
+            dirpath=hparams.log_dir,
+            save_top_k=1,
+            filename='imitation',
+            mode='min')
+        logger = pl.loggers.TensorBoardLogger(hparams.log_dir,
+                                              name='imitation')
+
+        # Setup
+        hparams['train_logs'] = ['Log1']
+        net = CNNAuxNet(hparams)
+        # net = ConvNet1(hparams)
+        output = net(net.example_input_array)
+        # print(output)  # verification
+        data_loader = imitation_dataset.sequential_train_val_test_iterator(hparams)
+        model = Imitation(hparams, net, data_loader)
+        model = model.load_from_checkpoint('logs/2021-08-01/imitation-v1.ckpt', hparams=hparams, net=net, data_loader=data_loader)
+        # model.calcAccuracy()
+        # model.sampleOutput()
+
+
+
+        
 
 
 

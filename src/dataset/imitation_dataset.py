@@ -1,11 +1,13 @@
 import os
 
+from matplotlib import pyplot as plt
 import numpy as np
 from skimage.io import imread_collection, imread
 
 from sklearn.model_selection import train_test_split
 
 import torch
+import numpy as np
 from torchvision import transforms
 
 from torch.utils.data import Dataset
@@ -106,6 +108,7 @@ class SequentialTorchDataset(Dataset):
                                           delimiter=',',
                                           usecols=(4, 5, 6, 7))
         action_ind = continous_to_discreet(autopilot_actions)
+        # action_ind = autopilot_actions[:,-1] # redlight detection
         actions = np.stack(action_ind, axis=-1)
         self.y = actions[self.file_idx, None]
 
@@ -201,21 +204,23 @@ def large_train_val_test_iterator(hparams):
 def sequential_train_val_test_iterator(hparams):
     # Parameters
     BATCH_SIZE = hparams['BATCH_SIZE']
+    NUM_WORKERS = hparams['NUM_WORKERS']
 
     # Create train, validation, test datasets
     data_iterator = {}
     train_data = SequentialTorchDataset(hparams, dataset_type='train')
     data_iterator['train_dataloader'] = DataLoader(train_data,
                                                    batch_size=BATCH_SIZE,
-                                                   shuffle=False)
+                                                   shuffle=False, num_workers=NUM_WORKERS
+                                                   )
 
     valid_data = SequentialTorchDataset(hparams, dataset_type='val')
     data_iterator['val_dataloader'] = DataLoader(valid_data,
-                                                 batch_size=BATCH_SIZE)
+                                                 batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
 
     test_data = SequentialTorchDataset(hparams, dataset_type='test')
     data_iterator['test_dataloader'] = DataLoader(test_data,
-                                                  batch_size=BATCH_SIZE)
+                                                  batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
 
     return data_iterator
 
