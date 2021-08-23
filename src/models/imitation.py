@@ -15,12 +15,18 @@ def lossCriterion(inp, out):
     # value = nn.CrossEntropyLoss()
     # l1 = nn.MSELoss()
     # print('loss', len(inp), len(out))
-    # print('loss2', inp[1].shape, out[1].shape)
-    l1 = nn.functional.mse_loss(inp[0], out[0])
-    l2 = nn.functional.cross_entropy(inp[1], out[1])
-    print('loss:',l1.item(), l2.item())
+    # print('loss2', inp[0].shape, out[0].shape)
+    l1 = nn.functional.mse_loss(inp[0], out[0][0])           # image reconstruction
+    l2 = nn.functional.cross_entropy(inp[1], out[1][:,0])    # Autopilot Action
+    l3 = nn.functional.cross_entropy(inp[2], out[1][:,1])    # trafficlight status detection
+   
     # l3 = nn.functional.l1_loss(inp[2], out[2])
-    loss = l1 + l2# + l3
+    # print('loss:',l1.item(), l2.item(), l3.item())
+    # self.log('image_recons_loss', l1, on_step=False, on_epoch=True)
+    # self.log('autopilot_action_loss', l2, on_step=False, on_epoch=True)
+    # self.log('traffic_loss', l3, on_step=False, on_epoch=True)
+
+    loss = l1 + l2 + 0.25*l3
     return loss
 
 
@@ -40,10 +46,12 @@ class Imitation(pl.LightningModule):
 
     def training_step(self, batch, batch_idx):
         x, y = batch
+        # print('x.shape', x[0].shape, x[1].shape, y.shape)
 
         # Predict and calculate loss
         output = self.forward(x)
         target = [x, y]
+        # print('y.shape',y.shape)
         loss = self.criterion(output, target)
         # loss = self.criterion(output, y)
 
@@ -52,6 +60,7 @@ class Imitation(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
+        # print('x.shape', x[0].shape, x[1].shape, y.shape)
 
         # Predict and calculate loss
         output = self.forward(x)
@@ -97,13 +106,13 @@ class Imitation(pl.LightningModule):
                 # Predict and calculate loss
                 output = self.net(x)
                 ### Auxiliary architechture
-                # target = [x,y]
-                # sortedout = torch.argmax(output[1], dim=1)
-                # corrects = (sortedout == target[1]).sum()
+                target = [x,y]
+                sortedout = torch.argmax(output[1], dim=1)
+                corrects = (sortedout == target[1]).sum()
 
                 ### Regular architechture 
-                sortedout = torch.argmax(output, dim=1)
-                corrects = (sortedout == y).sum()
+                # sortedout = torch.argmax(output, dim=1)
+                # corrects = (sortedout == y).sum()
                 # print(sortedout, y)
 
                 predicted.append(sortedout.cpu().detach().numpy())

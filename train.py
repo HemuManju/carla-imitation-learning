@@ -130,7 +130,7 @@ with skip_run('run', 'aux') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
 
-    camera_type = ['camera_sFOV', 'semantic']
+    camera_type = ['camera_sFOV', 'camera']
     for camera in camera_type:
         hparams['camera'] = camera
 

@@ -99,18 +99,37 @@ class SequentialTorchDataset(Dataset):
                 'camera']
         self.image_files = os.listdir(self.read_path)
 
+        self.read_path1 = hparams[
+            'data_dir'] + 'processed' + '/' + log + '/' + dataset_type + '/' + 'semantic'
+        self.image_files1 = os.listdir(self.read_path1)
+
         # Get corresponding targets (autopilot actions)
         self.file_idx = [
             int(name.split('.')[0]) - 1 for name in self.image_files
         ]  # file name starts from 1
-        autopilot_actions = np.genfromtxt(hparams['data_dir'] + 'raw' + '/' +
+        csv_data = np.genfromtxt(hparams['data_dir'] + 'raw' + '/' +
                                           log + '/state.csv',
                                           delimiter=',',
-                                          usecols=(4, 5, 6, 7))
-        action_ind = continous_to_discreet(autopilot_actions)
-        # action_ind = autopilot_actions[:,-1] # redlight detection
-        actions = np.stack(action_ind, axis=-1)
-        self.y = actions[self.file_idx, None]
+                                        #   usecols=(4, 5, 6, 7)
+                                        )     
+        # action_ind = continous_to_discreet(csv_data)
+        # action_ind = csv_data[:,-1] # redlight detection
+        # actions = np.stack(action_ind, axis=-1)
+        # # print('self.y', action_ind.shape, actions.shape)
+        # self.y = actions[self.file_idx, None]
+
+
+        action_ind = continous_to_discreet(csv_data)    # autopilot action
+        redlight_status = csv_data[:,-1]                # redlight detection
+        sensor = csv_data[:, 0:4]                       # sensor data
+
+
+        target = np.stack((redlight_status, action_ind), axis=-1)
+        self.y = target[self.file_idx, None]
+        self.sensor_data = sensor[self.file_idx, None]
+
+        print('y.shape', self.y.shape, self.sensor_data.shape)
+
 
         # This step normalizes image between 0 and 1
         self.transform = transforms.ToTensor()
@@ -128,8 +147,12 @@ class SequentialTorchDataset(Dataset):
 
         # Transform
         x = torch.from_numpy(x).type(torch.float32)
-        y = torch.from_numpy(self.y[index]).type(torch.long)
-        return x, y.squeeze(-1)
+        y = torch.from_numpy(self.y[index]).type(torch.long).squeeze(0)
+        sensor = torch.from_numpy(self.sensor_data[index]).type(torch.float32).squeeze(0)
+        
+        x = (x, sensor)
+
+        return x, y
 
     def __len__(self):
         return len(self.image_files) - self.hparams['frame_skip']
@@ -226,15 +249,16 @@ def sequential_train_val_test_iterator(hparams):
 
 
 def continous_to_discreet(y):
-    steer = y[:, 1].copy()
+    begInd = 4
+    steer = y[:, 1+begInd].copy()
     # Discretize
     steer[y[:, 1] > 0.05] = 2.0
     steer[y[:, 1] < -0.05] = 0.0
     steer[~np.logical_or(steer == 0.0, steer == 2.0)] = 1.0
 
     # Discretize throttle and brake
-    throttle = y[:, 0]
-    brake = y[:, 2]
+    throttle = y[:, 0+begInd]
+    brake = y[:, 2+begInd]
 
     acc = brake.copy()
     acc[np.logical_and(brake == 0.0, throttle == 1.0)] = 2.0
