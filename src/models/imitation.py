@@ -11,22 +11,17 @@ from matplotlib import pyplot as plt
 
 
 
-def lossCriterion(inp, out):
-    # value = nn.CrossEntropyLoss()
-    # l1 = nn.MSELoss()
-    # print('loss', len(inp), len(out))
-    # print('loss2', inp[0].shape, out[0].shape)
+def lossCriterion(obj, inp, out):
     l1 = nn.functional.mse_loss(inp[0], out[0][0])           # image reconstruction
-    l2 = nn.functional.cross_entropy(inp[1], out[1][:,0])    # Autopilot Action
-    l3 = nn.functional.cross_entropy(inp[2], out[1][:,1])    # trafficlight status detection
+    l2 = nn.functional.cross_entropy(inp[1], out[1][:,0])    # trafficlight status detection
+    l3 = nn.functional.cross_entropy(inp[2], out[1][:,1])    # Autopilot Action
    
-    # l3 = nn.functional.l1_loss(inp[2], out[2])
     # print('loss:',l1.item(), l2.item(), l3.item())
-    # self.log('image_recons_loss', l1, on_step=False, on_epoch=True)
-    # self.log('autopilot_action_loss', l2, on_step=False, on_epoch=True)
-    # self.log('traffic_loss', l3, on_step=False, on_epoch=True)
+    obj.log('image_recons_loss', l1, on_step=False, on_epoch=True)
+    obj.log('traffic_loss', l2, on_step=False, on_epoch=True)
+    obj.log('autopilot_action_loss', l3, on_step=False, on_epoch=True)
 
-    loss = l1 + l2 + 0.25*l3
+    loss = l1 + 0.25*l2 + l3
     return loss
 
 
@@ -52,7 +47,7 @@ class Imitation(pl.LightningModule):
         output = self.forward(x)
         target = [x, y]
         # print('y.shape',y.shape)
-        loss = self.criterion(output, target)
+        loss = self.criterion(self, output, target)
         # loss = self.criterion(output, y)
 
         self.log('train_loss', loss, on_step=False, on_epoch=True)
@@ -67,7 +62,7 @@ class Imitation(pl.LightningModule):
         # print('dims', x.shape, output[1].shape, y.shape)
         # print('dimsout', output[0].shape, output[1].shape, output[2].shape)
         target = [x,y]
-        loss = self.criterion(output, target)
+        loss = self.criterion(self, output, target)
         # loss = self.criterion(output, y)
 
         self.log('val_loss', loss, on_step=False, on_epoch=True)

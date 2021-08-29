@@ -122,7 +122,7 @@ class SequentialTorchDataset(Dataset):
         action_ind = continous_to_discreet(csv_data)    # autopilot action
         redlight_status = csv_data[:,-1]                # redlight detection
         sensor = csv_data[:, 0:4]                       # sensor data
-
+        sensor = np.delete(sensor, 1, 1)                # remove desired steering
 
         target = np.stack((redlight_status, action_ind), axis=-1)
         self.y = target[self.file_idx, None]
