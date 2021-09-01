@@ -97,7 +97,7 @@ class SequentialTorchDataset(Dataset):
         self.read_path = hparams[
             'data_dir'] + 'processed' + '/' + log + '/' + dataset_type + '/' + hparams[
                 'camera']
-        self.image_files = os.listdir(self.read_path)
+        self.image_files = sorted(os.listdir(self.read_path))
 
         self.read_path1 = hparams[
             'data_dir'] + 'processed' + '/' + log + '/' + dataset_type + '/' + 'semantic'
@@ -135,13 +135,16 @@ class SequentialTorchDataset(Dataset):
         self.transform = transforms.ToTensor()
 
     def _load_file(self, index):
-        files = self.image_files[index:index + self.hparams['frame_skip']]
+        # files = self.image_files[index:index + self.hparams['frame_skip']]
+        files = self.image_files[index - self.hparams['frame_skip']:index]
+        
         read_path = [self.read_path + '/' + file_name for file_name in files]
         images = imread_collection(read_path).concatenate()
         images = np.dot(images[..., :], [0.299, 0.587, 0.114]) / 255.0
         return images
 
     def __getitem__(self, index):
+        index = index + 4
         # Load the image
         x = self._load_file(index)
 

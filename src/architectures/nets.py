@@ -1,4 +1,4 @@
-from torch import nn
+from torch import nn, trace
 import pytorch_lightning as pl
 import torch
 
@@ -159,35 +159,58 @@ class CNNAuxNet(pl.LightningModule):
         self.example_input_array = [torch.randn((1, obs_size, 256, 256)), torch.randn((1, 3))] 
 
 
-        self.encoder = nn.Sequential(
-        nn.Conv2d(obs_size, 32, kernel_size=7, stride=3), nn.BatchNorm2d(32), nn.ReLU(),
-        nn.Conv2d(32, 64, kernel_size=5, stride=3), nn.BatchNorm2d(64), nn.ReLU(),
-        nn.Conv2d(64, 128, kernel_size=5, stride=3), nn.BatchNorm2d(128), nn.ReLU(),
-        nn.Conv2d(128, 128, kernel_size=3, stride=2), nn.BatchNorm2d(128), nn.ReLU(),
-        nn.Conv2d(128, 256, kernel_size=3, stride=2)
-        )
+        # self.encoder = nn.Sequential(
+        # nn.Conv2d(obs_size, 32, kernel_size=7, stride=3), nn.BatchNorm2d(32), nn.ReLU(),
+        # nn.Conv2d(32, 64, kernel_size=5, stride=3), nn.BatchNorm2d(64), nn.ReLU(),
+        # nn.Conv2d(64, 128, kernel_size=5, stride=3), nn.BatchNorm2d(128), nn.ReLU(),
+        # nn.Conv2d(128, 128, kernel_size=3, stride=2), nn.BatchNorm2d(128), nn.ReLU(),
+        # nn.Conv2d(128, 256, kernel_size=3, stride=2)
+        # )
 
-        numparams = sum(p.numel() for p in self.encoder.parameters() if p.requires_grad)
-        print('encoder params:', numparams)
+        # numparams = sum(p.numel() for p in self.encoder.parameters() if p.requires_grad)
+        # print('encoder params:', numparams)
 
         # self.hidden_size = self._get_flatten_size()
 
-        self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, output_padding=0), nn.BatchNorm2d(128), nn.ReLU(),
-            nn.ConvTranspose2d(128, 128, kernel_size=3, stride=2, output_padding=1), nn.BatchNorm2d(128), nn.ReLU(), 
-            nn.ConvTranspose2d(128, 64, kernel_size=5, stride=3, output_padding=1), nn.BatchNorm2d(64), nn.ReLU(), 
-            nn.ConvTranspose2d(64, 32, kernel_size=5, stride=3, output_padding=1), nn.BatchNorm2d(32), nn.ReLU(), 
-            nn.ConvTranspose2d(32, obs_size, kernel_size=7, stride=3),
-            nn.Sigmoid())
+        # self.decoder = nn.Sequential(
+        #     nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, output_padding=0), nn.BatchNorm2d(128), nn.ReLU(),
+        #     nn.ConvTranspose2d(128, 128, kernel_size=3, stride=2, output_padding=1), nn.BatchNorm2d(128), nn.ReLU(), 
+        #     nn.ConvTranspose2d(128, 64, kernel_size=5, stride=3, output_padding=1), nn.BatchNorm2d(64), nn.ReLU(), 
+        #     nn.ConvTranspose2d(64, 32, kernel_size=5, stride=3, output_padding=1), nn.BatchNorm2d(32), nn.ReLU(), 
+        #     nn.ConvTranspose2d(32, obs_size, kernel_size=7, stride=3),
+        #     nn.Sigmoid())
 
-        sensor_len = 3
-        self.trafficlight = nn.Sequential(nn.Linear(256 + 0, 64), nn.ReLU(),
-                                nn.Linear(64, 32), nn.ReLU(),
-                                nn.Linear(32, 3)) # red, green, none
+        # sensor_len = 0#3
+        # self.trafficlight = nn.Sequential(nn.Linear(256 + 0, 64), nn.ReLU(),
+        #                         nn.Linear(64, 32), nn.ReLU(),
+        #                         nn.Linear(32, 3)) # red, green, none
         
-        self.autopilotAC = nn.Sequential(nn.Linear(256 + sensor_len + 3, 64), nn.ReLU(),
-                        nn.Linear(64, 32), nn.ReLU(),
-                        nn.Linear(32, n_actions))
+        # self.autopilotAC = nn.Sequential(nn.Linear(256 + sensor_len + 0, 64), nn.ReLU(),
+        #                 nn.Linear(64, 32), nn.ReLU(),
+        #                 nn.Linear(32, n_actions))
+
+
+        self.encoder = nn.Sequential(
+            nn.Conv2d(obs_size, 32, kernel_size=4, stride=2), nn.ReLU(),
+            nn.Conv2d(32, 64, kernel_size=4, stride=2), nn.ReLU(),
+            nn.Conv2d(64, 128, kernel_size=6, stride=3), nn.ReLU(),
+            nn.Conv2d(128, 128, kernel_size=6, stride=3), nn.ReLU())
+
+        # self.decoder = nn.Sequential(
+        #     nn.ConvTranspose2d(128, 128, kernel_size=6, stride=3, output_padding=1),
+        #     nn.ReLU(), nn.ConvTranspose2d(128, 64, kernel_size=6, stride=3, output_padding=2),
+        #     nn.ReLU(), nn.ConvTranspose2d(64, 32, kernel_size=4, stride=2, output_padding=1),
+        #     nn.ReLU(), nn.ConvTranspose2d(32, obs_size, kernel_size=4, stride=2),
+        #     nn.Sigmoid())
+
+
+        # self.trafficlight = nn.Sequential(nn.Linear(3200, 64), nn.ReLU(),
+        #                         nn.Linear(64, 32), nn.ReLU(),
+        #                         nn.Linear(32, 3)) # red, green, none
+
+        self.autopilotAC = nn.Sequential(nn.Linear(3200, 200), nn.ReLU(),
+                        nn.Linear(200, 48), nn.ReLU(),
+                        nn.Linear(48, n_actions))
 
 
         
@@ -201,16 +224,19 @@ class CNNAuxNet(pl.LightningModule):
     def forward(self, x):
         h = self.encoder(x[0])
         # print(h.shape)
-        d_out = self.decoder(h)
+        # d_out = self.decoder(h)
+        d_out = 0.0
 
         hflat = torch.flatten(h, start_dim=1)
-        latent = torch.cat((hflat, x[1]), dim=1)                 # add sensor data
+        # latent = torch.cat((hflat, x[1]), dim=1)                 # add sensor data
         
         # traffic_out = self.trafficlight(latent)
-        traffic_out = self.trafficlight(hflat)                   # no sensor data
+        # traffic_out = self.trafficlight(hflat)                   # no sensor data
+        traffic_out = 0.0
 
-        final_latent = torch.cat((latent, traffic_out), dim=1)   # add traffic light detection output
-        act_out = self.autopilotAC(final_latent)
+        # final_latent = torch.cat((latent, traffic_out), dim=1)   # add traffic light detection output
+        # final_latent = torch.cat((hflat, traffic_out), dim=1)
+        act_out = self.autopilotAC(hflat)
         
         out = [d_out, traffic_out, act_out]
 

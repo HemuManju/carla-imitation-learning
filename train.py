@@ -25,7 +25,8 @@ with skip_run('skip', 'split_image_folder') as check, check():
     splitfolders.ratio(read_path,
                        output=hparams['data_dir'] + 'processed' + '/' + log,
                        seed=1337,
-                       ratio=(.8, 0.1, 0.1))
+                       ratio=(.8, 0.1, 0.1),
+                       shuffle=False)
 
 with skip_run('skip', 'pooled_data_vae') as check, check():
     # Load the parameters
@@ -130,7 +131,7 @@ with skip_run('run', 'aux') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
 
-    camera_type = ['camera_sFOV', 'camera']
+    camera_type = ['camera', 'camera_sFOV']
     for camera in camera_type:
         hparams['camera'] = camera
 
@@ -163,7 +164,6 @@ with skip_run('run', 'aux') as check, check():
         trainer.fit(model)
 
 
-
 with skip_run('skip', 'test') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
@@ -192,16 +192,13 @@ with skip_run('skip', 'test') as check, check():
         # net = ConvNet1(hparams)
         output = net(net.example_input_array)
         # print(output)  # verification
-        data_loader = imitation_dataset.sequential_train_val_test_iterator(hparams)
+        data_loader = imitation_dataset.sequential_train_val_test_iterator(
+            hparams)
         model = Imitation(hparams, net, data_loader)
-        model = model.load_from_checkpoint('logs/2021-08-01/imitation-v1.ckpt', hparams=hparams, net=net, data_loader=data_loader)
+        model = model.load_from_checkpoint(
+            'logs/2021-08-01/imitation-v1.ckpt', hparams=hparams, net=net, data_loader=data_loader)
         # model.calcAccuracy()
         # model.sampleOutput()
-
-
-
-        
-
 
 
 with skip_run('skip', 'behavior_cloning_with_raw_segmented') as check, check():
