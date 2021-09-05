@@ -1,6 +1,7 @@
 import os
 
 import numpy as np
+import pandas as pd
 from skimage.io import imread_collection, imread
 
 from sklearn.model_selection import train_test_split
@@ -93,19 +94,18 @@ class SequentialTorchDataset(Dataset):
         log = hparams['train_logs'][0]
 
         self.read_path = hparams[
-            'data_dir'] + 'processed' + '/' + log + '/' + dataset_type + '/' + hparams[
-                'camera']
-        self.image_files = os.listdir(self.read_path)
+            'data_dir'] + 'processed' + '/' + log + '/' + dataset_type + '/' + log + '/'
+        filelist = os.listdir(self.read_path)
+        self.image_files = sorted(filelist,
+                                  key=lambda x: int(os.path.splitext(x)[0]))
 
         # Get corresponding targets (autopilot actions)
         self.file_idx = [
             int(name.split('.')[0]) - 1 for name in self.image_files
         ]  # file name starts from 1
-        autopilot_actions = np.genfromtxt(hparams['data_dir'] + 'raw' + '/' +
-                                          log + '/state.csv',
-                                          delimiter=',',
-                                          usecols=(4, 5, 6, 7))
-        action_ind = continous_to_discreet(autopilot_actions)
+        state = pd.read_csv(hparams['data_dir'] + 'raw/state.csv')
+
+        action_ind = continous_to_discreet(state)
         actions = np.stack(action_ind, axis=-1)
         self.y = actions[self.file_idx, None]
 
@@ -113,20 +113,82 @@ class SequentialTorchDataset(Dataset):
         self.transform = transforms.ToTensor()
 
     def _load_file(self, index):
-        files = self.image_files[index:index + self.hparams['frame_skip']]
+        # files = self.image_files[index:index + self.hparams['frame_skip']]
+        files = self.image_files[index - self.hparams['frame_skip']:index]
+
         read_path = [self.read_path + '/' + file_name for file_name in files]
         images = imread_collection(read_path).concatenate()
-        images = np.dot(images[..., :], [0.299, 0.587, 0.114]) / 255
+        images = np.dot(images[..., :], [0.299, 0.587, 0.114]) / 255.0
         return images
 
     def __getitem__(self, index):
+        index = index + 4
         # Load the image
         x = self._load_file(index)
 
         # Transform
         x = torch.from_numpy(x).type(torch.float32)
-        y = torch.from_numpy(self.y[index]).type(torch.long)
-        return x, y.squeeze(-1)
+        y = torch.from_numpy(self.y[index]).type(torch.long).squeeze(0)
+
+        return x, y
+
+    def __len__(self):
+        return len(self.image_files) - self.hparams['frame_skip']
+
+
+class SequentialAuxTorchDataset(Dataset):
+    def __init__(self, hparams, dataset_type='train'):
+        # Read path
+        self.hparams = hparams
+        log = hparams['train_logs'][0]
+
+        self.read_path = hparams[
+            'data_dir'] + 'processed' + '/' + log + '/' + dataset_type + '/' + log + '/'
+        filelist = os.listdir(self.read_path)
+        self.image_files = sorted(filelist,
+                                  key=lambda x: int(os.path.splitext(x)[0]))
+
+        # Get corresponding targets (autopilot actions)
+        self.file_idx = [
+            int(name.split('.')[0]) - 1 for name in self.image_files
+        ]  # file name starts from 1
+        state = pd.read_csv(hparams['data_dir'] + 'raw/state.csv')
+
+        action_ind = continous_to_discreet(state)  # autopilot action
+        redlight_status = state['trafficlight'].values  # redlight detection
+        sensor = state[['current_steer', 'speed_long',
+                        'speed']].values  # sensor data
+
+        target = np.stack((redlight_status, action_ind), axis=-1)
+        self.y = target[self.file_idx, None]
+        self.sensor_data = sensor[self.file_idx, None]
+
+        # This step normalizes image between 0 and 1
+        self.transform = transforms.ToTensor()
+
+    def _load_file(self, index):
+        # files = self.image_files[index:index + self.hparams['frame_skip']]
+        files = self.image_files[index - self.hparams['frame_skip']:index]
+
+        read_path = [self.read_path + '/' + file_name for file_name in files]
+        images = imread_collection(read_path).concatenate()
+        images = np.dot(images[..., :], [0.299, 0.587, 0.114]) / 255.0
+        return images
+
+    def __getitem__(self, index):
+        index = index + 4
+        # Load the image
+        x = self._load_file(index)
+
+        # Transform
+        x = torch.from_numpy(x).type(torch.float32)
+        y = torch.from_numpy(self.y[index]).type(torch.long).squeeze(0)
+        sensor = torch.from_numpy(self.sensor_data[index]).type(
+            torch.float32).squeeze(0)
+
+        x = (x, sensor)
+
+        return x, y
 
     def __len__(self):
         return len(self.image_files) - self.hparams['frame_skip']
@@ -201,35 +263,69 @@ def large_train_val_test_iterator(hparams):
 def sequential_train_val_test_iterator(hparams):
     # Parameters
     BATCH_SIZE = hparams['BATCH_SIZE']
+    NUM_WORKERS = hparams['NUM_WORKERS']
 
     # Create train, validation, test datasets
     data_iterator = {}
     train_data = SequentialTorchDataset(hparams, dataset_type='train')
     data_iterator['train_dataloader'] = DataLoader(train_data,
                                                    batch_size=BATCH_SIZE,
-                                                   shuffle=False)
+                                                   shuffle=False,
+                                                   num_workers=NUM_WORKERS)
 
     valid_data = SequentialTorchDataset(hparams, dataset_type='val')
     data_iterator['val_dataloader'] = DataLoader(valid_data,
-                                                 batch_size=BATCH_SIZE)
+                                                 batch_size=BATCH_SIZE,
+                                                 shuffle=False,
+                                                 num_workers=NUM_WORKERS)
 
     test_data = SequentialTorchDataset(hparams, dataset_type='test')
     data_iterator['test_dataloader'] = DataLoader(test_data,
-                                                  batch_size=BATCH_SIZE)
+                                                  batch_size=BATCH_SIZE,
+                                                  shuffle=False,
+                                                  num_workers=NUM_WORKERS)
+
+    return data_iterator
+
+
+def sequential_aux_train_val_test_iterator(hparams):
+    # Parameters
+    BATCH_SIZE = hparams['BATCH_SIZE']
+    NUM_WORKERS = hparams['NUM_WORKERS']
+
+    # Create train, validation, test datasets
+    data_iterator = {}
+    train_data = SequentialAuxTorchDataset(hparams, dataset_type='train')
+    data_iterator['train_dataloader'] = DataLoader(train_data,
+                                                   batch_size=BATCH_SIZE,
+                                                   shuffle=False,
+                                                   num_workers=NUM_WORKERS)
+
+    valid_data = SequentialAuxTorchDataset(hparams, dataset_type='val')
+    data_iterator['val_dataloader'] = DataLoader(valid_data,
+                                                 batch_size=BATCH_SIZE,
+                                                 num_workers=NUM_WORKERS)
+
+    test_data = SequentialAuxTorchDataset(hparams, dataset_type='test')
+    data_iterator['test_dataloader'] = DataLoader(test_data,
+                                                  batch_size=BATCH_SIZE,
+                                                  num_workers=NUM_WORKERS)
 
     return data_iterator
 
 
 def continous_to_discreet(y):
-    steer = y[:, 1].copy()
+
+    steer = y['steer'].values
+    temp = steer.copy()
     # Discretize
-    steer[y[:, 1] > 0.05] = 2.0
-    steer[y[:, 1] < -0.05] = 0.0
+    steer[temp > 0.05] = 2.0
+    steer[temp < -0.05] = 0.0
     steer[~np.logical_or(steer == 0.0, steer == 2.0)] = 1.0
 
     # Discretize throttle and brake
-    throttle = y[:, 0]
-    brake = y[:, 2]
+    throttle = y['throttle'].values
+    brake = y['brake'].values
 
     acc = brake.copy()
     acc[np.logical_and(brake == 0.0, throttle == 1.0)] = 2.0
