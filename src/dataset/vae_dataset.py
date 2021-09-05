@@ -68,17 +68,17 @@ def train_val_test_iterator(hparams, data_split_type=None):
     # Create train, validation, test datasets and save them in a dictionary
     data_iterator = {}
     train_data = TorchDataset(train_data)
-    data_iterator['train_dataloader'] = DataLoader(train_data,
-                                                   batch_size=BATCH_SIZE,
-                                                   shuffle=True)
+    data_iterator['train_data_loader'] = DataLoader(train_data,
+                                                    batch_size=BATCH_SIZE,
+                                                    shuffle=True)
 
     valid_data = TorchDataset(valid_data)
-    data_iterator['val_dataloader'] = DataLoader(valid_data,
-                                                 batch_size=BATCH_SIZE)
+    data_iterator['val_data_loader'] = DataLoader(valid_data,
+                                                  batch_size=BATCH_SIZE)
 
     test_data = TorchDataset(test_data)
-    data_iterator['test_dataloader'] = DataLoader(test_data,
-                                                  batch_size=BATCH_SIZE)
+    data_iterator['test_data_loader'] = DataLoader(test_data,
+                                                   batch_size=BATCH_SIZE)
 
     return data_iterator
 

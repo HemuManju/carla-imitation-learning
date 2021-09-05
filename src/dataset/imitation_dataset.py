@@ -161,17 +161,17 @@ def train_val_test_iterator(hparams, data_split_type=None):
     # Create train, validation, test datasets and save them in a dictionary
     data_iterator = {}
     train_data = TorchDataset(data['train'])
-    data_iterator['train_dataloader'] = DataLoader(train_data,
-                                                   batch_size=BATCH_SIZE,
-                                                   shuffle=True)
+    data_iterator['train_data_loader'] = DataLoader(train_data,
+                                                    batch_size=BATCH_SIZE,
+                                                    shuffle=True)
 
     valid_data = TorchDataset(data['valid'])
-    data_iterator['val_dataloader'] = DataLoader(valid_data,
-                                                 batch_size=BATCH_SIZE)
+    data_iterator['val_data_loader'] = DataLoader(valid_data,
+                                                  batch_size=BATCH_SIZE)
 
     test_data = TorchDataset(data['test'])
-    data_iterator['test_dataloader'] = DataLoader(test_data,
-                                                  batch_size=BATCH_SIZE)
+    data_iterator['test_data_loader'] = DataLoader(test_data,
+                                                   batch_size=BATCH_SIZE)
 
     return data_iterator
 
@@ -183,17 +183,17 @@ def large_train_val_test_iterator(hparams):
     # Create train, validation, test datasets
     data_iterator = {}
     train_data = LargeTorchDataset(hparams, dataset_type='train')
-    data_iterator['train_dataloader'] = DataLoader(train_data,
-                                                   batch_size=BATCH_SIZE,
-                                                   shuffle=True)
+    data_iterator['train_data_loader'] = DataLoader(train_data,
+                                                    batch_size=BATCH_SIZE,
+                                                    shuffle=True)
 
     valid_data = LargeTorchDataset(hparams, dataset_type='val')
-    data_iterator['val_dataloader'] = DataLoader(valid_data,
-                                                 batch_size=BATCH_SIZE)
+    data_iterator['val_data_loader'] = DataLoader(valid_data,
+                                                  batch_size=BATCH_SIZE)
 
     test_data = LargeTorchDataset(hparams, dataset_type='test')
-    data_iterator['test_dataloader'] = DataLoader(test_data,
-                                                  batch_size=BATCH_SIZE)
+    data_iterator['test_data_loader'] = DataLoader(test_data,
+                                                   batch_size=BATCH_SIZE)
 
     return data_iterator
 
@@ -205,17 +205,17 @@ def sequential_train_val_test_iterator(hparams):
     # Create train, validation, test datasets
     data_iterator = {}
     train_data = SequentialTorchDataset(hparams, dataset_type='train')
-    data_iterator['train_dataloader'] = DataLoader(train_data,
-                                                   batch_size=BATCH_SIZE,
-                                                   shuffle=False)
+    data_iterator['train_data_loader'] = DataLoader(train_data,
+                                                    batch_size=BATCH_SIZE,
+                                                    shuffle=False)
 
     valid_data = SequentialTorchDataset(hparams, dataset_type='val')
-    data_iterator['val_dataloader'] = DataLoader(valid_data,
-                                                 batch_size=BATCH_SIZE)
+    data_iterator['val_data_loader'] = DataLoader(valid_data,
+                                                  batch_size=BATCH_SIZE)
 
     test_data = SequentialTorchDataset(hparams, dataset_type='test')
-    data_iterator['test_dataloader'] = DataLoader(test_data,
-                                                  batch_size=BATCH_SIZE)
+    data_iterator['test_data_loader'] = DataLoader(test_data,
+                                                   batch_size=BATCH_SIZE)
 
     return data_iterator
 

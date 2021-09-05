@@ -38,14 +38,14 @@ class Imitation(pl.LightningModule):
         self.log('val_loss', loss, on_step=False, on_epoch=True)
         return loss
 
-    def train_dataloader(self):
-        return self.data_loader['train_dataloader']
+    def train_data_loader(self):
+        return self.data_loader['train_data_loader']
 
-    def val_dataloader(self):
-        return self.data_loader['val_dataloader']
+    def val_data_loader(self):
+        return self.data_loader['val_data_loader']
 
-    def test_dataloader(self):
-        return self.data_loader['test_dataloader']
+    def test_data_loader(self):
+        return self.data_loader['test_data_loader']
 
     def configure_optimizers(self):
         return Adam(self.parameters(), lr=1e-3)
