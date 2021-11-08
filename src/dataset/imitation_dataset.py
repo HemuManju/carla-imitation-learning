@@ -314,13 +314,13 @@ def sequential_aux_train_val_test_iterator(hparams):
     return data_iterator
 
 
-def continous_to_discreet(y):
+def continous_to_discreet(y, steer_threshold=0.05):
 
     steer = y['steer'].values
     temp = steer.copy()
     # Discretize
-    steer[temp > 0.05] = 2.0
-    steer[temp < -0.05] = 0.0
+    steer[temp > steer_threshold] = 2.0
+    steer[temp < -steer_threshold] = 0.0
     steer[~np.logical_or(steer == 0.0, steer == 2.0)] = 1.0
 
     # Discretize throttle and brake

@@ -90,7 +90,7 @@ with skip_run('skip', 'leave_one_out_data_vae') as check, check():
                          callbacks=[checkpoint_callback])
     trainer.fit(model)
 
-with skip_run('run', 'behavior_cloning') as check, check():
+with skip_run('skip', 'behavior_cloning') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
 
