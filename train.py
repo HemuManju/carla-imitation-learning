@@ -17,7 +17,7 @@ initialize(config_path="configs", job_name="vae")
 
 with skip_run('skip', 'split_image_folder') as check, check():
     hparams = compose(config_name="config")
-    hparams['camera'] = 'camera'
+    hparams['camera'] = 'semantic'
     log = hparams['train_logs'][0]
 
     read_path = hparams['data_dir'] + 'raw' + '/' + log
@@ -127,11 +127,11 @@ with skip_run('skip', 'behavior_cloning') as check, check():
         trainer.fit(model)
 
 
-with skip_run('run', 'aux') as check, check():
+with skip_run('skip', 'aux') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
 
-    camera_type = ['camera', 'camera_sFOV']
+    camera_type = ['camera']#, 'camera_sFOV']
     for camera in camera_type:
         hparams['camera'] = camera
 
@@ -152,6 +152,12 @@ with skip_run('run', 'aux') as check, check():
         # Setup
         hparams['train_logs'] = ['Log1']
         net = CNNAuxNet(hparams)
+        ### using pretrained weights
+        # ckpt_path='logs/2021-10-29/imitation.ckpt'  # image recons  
+        # ckpt_path='logs/2021-11-02/imitation.ckpt'    # semseg
+        # net.loadWeights(ckpt_path=ckpt_path, selected_subnet=['encoder','decoder'])
+        # net.freezeLayers(selected_subnet=['encoder','decoder'])
+        
         output = net(net.example_input_array)
         # print(output)  # verification
         data_loader = imitation_dataset.sequential_train_val_test_iterator(
@@ -164,11 +170,11 @@ with skip_run('run', 'aux') as check, check():
         trainer.fit(model)
 
 
-with skip_run('skip', 'test') as check, check():
+with skip_run('run', 'test') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
 
-    camera_type = ['camera_sFOV', 'semantic']
+    camera_type = ['camera']
     for camera in camera_type:
         hparams['camera'] = camera
 
@@ -195,9 +201,11 @@ with skip_run('skip', 'test') as check, check():
         data_loader = imitation_dataset.sequential_train_val_test_iterator(
             hparams)
         model = Imitation(hparams, net, data_loader)
+        # 'logs/2021-11-05/imitation-v2.ckpt' # baseline 256
+        # 'logs/2021-11-05/imitation-v3.ckpt' # baseline 1024
         model = model.load_from_checkpoint(
-            'logs/2021-08-01/imitation-v1.ckpt', hparams=hparams, net=net, data_loader=data_loader)
-        # model.calcAccuracy()
+            'logs/2021-11-06/imitation-v1.ckpt', hparams=hparams, net=net, data_loader=data_loader)
+        model.calcAccuracy()
         # model.sampleOutput()
 
 

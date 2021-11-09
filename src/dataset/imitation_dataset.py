@@ -94,14 +94,10 @@ class SequentialTorchDataset(Dataset):
         self.hparams = hparams
         log = hparams['train_logs'][0]
 
-        self.read_path = hparams[
-            'data_dir'] + 'processed' + '/' + log + '/' + dataset_type + '/' + hparams[
-                'camera']
-        self.image_files = sorted(os.listdir(self.read_path))
-
-        self.read_path1 = hparams[
-            'data_dir'] + 'processed' + '/' + log + '/' + dataset_type + '/' + 'semantic'
-        self.image_files1 = os.listdir(self.read_path1)
+        self.read_path = hparams['data_dir'] + 'processed' + '/' + log + '/' + dataset_type + '/'
+        
+        self.image_files = sorted(os.listdir(self.read_path + hparams['camera']))
+        self.image_files1 = sorted(os.listdir(self.read_path + 'semantic'))
 
         # Get corresponding targets (autopilot actions)
         self.file_idx = [
@@ -134,26 +130,41 @@ class SequentialTorchDataset(Dataset):
         # This step normalizes image between 0 and 1
         self.transform = transforms.ToTensor()
 
-    def _load_file(self, index):
-        # files = self.image_files[index:index + self.hparams['frame_skip']]
-        files = self.image_files[index - self.hparams['frame_skip']:index]
+    def _load_file(self, index, modality='rgb'):
+        # files = self.image_files[index - self.hparams['frame_skip']:index]            # no frame skipping
+        # files = self.image_files[index - 3*self.hparams['frame_skip']:index:3]        # Frame skipping
+        files = None
+        if modality == 'rgb':
+            files = self.image_files[index-1:index]                                     # single image
+            mod = 'camera'
+        elif modality =='semantic':
+            files = self.image_files1[index-1:index]
+            mod = 'semantic'
         
-        read_path = [self.read_path + '/' + file_name for file_name in files]
-        images = imread_collection(read_path).concatenate()
-        images = np.dot(images[..., :], [0.299, 0.587, 0.114]) / 255.0
+        read_path = [self.read_path + mod + '/' + file_name for file_name in files]
+        # images = imread_collection(read_path).concatenate()   # stack of images
+        ### single image
+        images = imread(read_path[0])                           # single image
+        images = np.dot(images[..., :], [0.299, 0.587, 0.114]) / 255.0  
+        images = np.expand_dims(images, axis=0)                 # single image
+       
         return images
 
     def __getitem__(self, index):
-        index = index + 4
+        if(index < 12):
+            index = index+12
         # Load the image
         x = self._load_file(index)
+        x_sem = self._load_file(index, modality='semantic')
 
         # Transform
         x = torch.from_numpy(x).type(torch.float32)
+        x_sem = torch.from_numpy(x_sem).type(torch.float32)
         y = torch.from_numpy(self.y[index]).type(torch.long).squeeze(0)
         sensor = torch.from_numpy(self.sensor_data[index]).type(torch.float32).squeeze(0)
         
-        x = (x, sensor)
+        # x = (x, sensor)
+        x = (x, sensor, x_sem)
 
         return x, y
 

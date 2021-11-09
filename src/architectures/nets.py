@@ -152,13 +152,13 @@ class CNNAuxNet(pl.LightningModule):
 
         # Parameters
         obs_size = hparams['obs_size']
-        image_size = hparams.image_size
         n_actions = hparams['n_actions']
 
-        # self.example_input_array = torch.randn((1, *image_size))
-        self.example_input_array = [torch.randn((1, obs_size, 256, 256)), torch.randn((1, 3))] 
+        self.example_input_array = [torch.randn((1, obs_size, 256, 256)), torch.randn((1, 3))]          # image and sensor
 
-
+        ####################################
+        #### 1. CNN with BN
+        ####################################
         # self.encoder = nn.Sequential(
         # nn.Conv2d(obs_size, 32, kernel_size=7, stride=3), nn.BatchNorm2d(32), nn.ReLU(),
         # nn.Conv2d(32, 64, kernel_size=5, stride=3), nn.BatchNorm2d(64), nn.ReLU(),
@@ -166,12 +166,6 @@ class CNNAuxNet(pl.LightningModule):
         # nn.Conv2d(128, 128, kernel_size=3, stride=2), nn.BatchNorm2d(128), nn.ReLU(),
         # nn.Conv2d(128, 256, kernel_size=3, stride=2)
         # )
-
-        # numparams = sum(p.numel() for p in self.encoder.parameters() if p.requires_grad)
-        # print('encoder params:', numparams)
-
-        # self.hidden_size = self._get_flatten_size()
-
         # self.decoder = nn.Sequential(
         #     nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, output_padding=0), nn.BatchNorm2d(128), nn.ReLU(),
         #     nn.ConvTranspose2d(128, 128, kernel_size=3, stride=2, output_padding=1), nn.BatchNorm2d(128), nn.ReLU(), 
@@ -180,21 +174,98 @@ class CNNAuxNet(pl.LightningModule):
         #     nn.ConvTranspose2d(32, obs_size, kernel_size=7, stride=3),
         #     nn.Sigmoid())
 
-        # sensor_len = 0#3
-        # self.trafficlight = nn.Sequential(nn.Linear(256 + 0, 64), nn.ReLU(),
-        #                         nn.Linear(64, 32), nn.ReLU(),
-        #                         nn.Linear(32, 3)) # red, green, none
-        
-        # self.autopilotAC = nn.Sequential(nn.Linear(256 + sensor_len + 0, 64), nn.ReLU(),
-        #                 nn.Linear(64, 32), nn.ReLU(),
-        #                 nn.Linear(32, n_actions))
 
+        ####################################
+        #### 2. CNN without BN, (with dropout) 
+        ####################################
+        ### 128 latent size
+        # self.encoder = nn.Sequential(
+        # nn.Conv2d(obs_size, 32, kernel_size=7, stride=3), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(32, 32, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(32, 64, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(64, 64, kernel_size=3, stride=2), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(64, 128, kernel_size=3, stride=2)
+        # )
+        # self.decoder = nn.Sequential(
+        #     nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, output_padding=0), nn.ReLU(),
+        #     nn.ConvTranspose2d(64, 64, kernel_size=3, stride=2, output_padding=1), nn.ReLU(), 
+        #     nn.ConvTranspose2d(64, 32, kernel_size=5, stride=3, output_padding=1), nn.ReLU(), 
+        #     nn.ConvTranspose2d(32, 32, kernel_size=5, stride=3, output_padding=1), nn.ReLU(), 
+        #     nn.ConvTranspose2d(32, obs_size, kernel_size=7, stride=3),
+        #     nn.Sigmoid()
+        # )
 
+        ### 256 latent size
         self.encoder = nn.Sequential(
-            nn.Conv2d(obs_size, 32, kernel_size=4, stride=2), nn.ReLU(),
-            nn.Conv2d(32, 64, kernel_size=4, stride=2), nn.ReLU(),
-            nn.Conv2d(64, 128, kernel_size=6, stride=3), nn.ReLU(),
-            nn.Conv2d(128, 128, kernel_size=6, stride=3), nn.ReLU())
+        nn.Conv2d(obs_size, 32, kernel_size=7, stride=3), nn.Dropout(.2), nn.ReLU(),
+        nn.Conv2d(32, 32, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
+        nn.Conv2d(32, 64, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
+        nn.Conv2d(64, 128, kernel_size=3, stride=2), nn.Dropout(.2), nn.ReLU(),
+        nn.Conv2d(128, 256, kernel_size=3, stride=2)
+        )
+        self.decoder = nn.Sequential(
+            nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, output_padding=0), nn.ReLU(),
+            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, output_padding=1), nn.ReLU(), 
+            nn.ConvTranspose2d(64, 32, kernel_size=5, stride=3, output_padding=1), nn.ReLU(), 
+            nn.ConvTranspose2d(32, 32, kernel_size=5, stride=3, output_padding=1), nn.ReLU(), 
+            nn.ConvTranspose2d(32, obs_size, kernel_size=7, stride=3),
+            nn.Sigmoid()
+        )
+
+        ### 1024 latent size
+        # self.encoder = nn.Sequential(
+        # nn.Conv2d(obs_size, 32, kernel_size=7, stride=3), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(32, 64, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(64, 128, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(128, 256, kernel_size=3, stride=2), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(256, 1024, kernel_size=3, stride=2)
+        # )
+        # self.decoder = nn.Sequential(
+        #     nn.ConvTranspose2d(1024, 256, kernel_size=3, stride=2, output_padding=0), nn.ReLU(),
+        #     nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, output_padding=1), nn.ReLU(), 
+        #     nn.ConvTranspose2d(128, 64, kernel_size=5, stride=3, output_padding=1), nn.ReLU(), 
+        #     nn.ConvTranspose2d(64, 32, kernel_size=5, stride=3, output_padding=1), nn.ReLU(), 
+        #     nn.ConvTranspose2d(32, obs_size, kernel_size=7, stride=3),
+        #     nn.Sigmoid()
+        # )
+
+        ####################################
+        #### 3. CNN without BN, with dropout, kernel_1 = 5,not 7 
+        ####################################
+        # self.encoder = nn.Sequential(
+        # nn.Conv2d(obs_size, 32, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(32, 32, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(32, 64, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(64, 64, kernel_size=3, stride=2), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(64, 128, kernel_size=3, stride=2)
+        # )
+        # self.decoder = nn.Sequential(
+        #     nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, output_padding=0), nn.ReLU(),
+        #     nn.ConvTranspose2d(64, 64, kernel_size=3, stride=2, output_padding=1), nn.ReLU(), 
+        #     nn.ConvTranspose2d(64, 32, kernel_size=5, stride=3, output_padding=1), nn.ReLU(), 
+        #     nn.ConvTranspose2d(32, 32, kernel_size=5, stride=3, output_padding=1), nn.ReLU(), 
+        #     nn.ConvTranspose2d(32, obs_size, kernel_size=5, stride=3, output_padding=2),
+        #     nn.Sigmoid()
+        # )
+
+
+        ####################################
+        #### 3. CNN other
+        ####################################
+        # self.encoder = nn.Sequential(
+        # nn.Conv2d(obs_size, 32, kernel_size=7, stride=3),  nn.ReLU(),
+        # nn.Conv2d(32, 32, kernel_size=5, stride=3), nn.ReLU(),
+        # nn.Conv2d(32, 64, kernel_size=5, stride=3), nn.ReLU(),
+        # nn.Conv2d(64, 64, kernel_size=3, stride=2), nn.ReLU(),
+        # nn.Conv2d(64, 128, kernel_size=3, stride=2)
+        # )
+
+
+        # self.encoder = nn.Sequential(
+        #     nn.Conv2d(obs_size, 32, kernel_size=4, stride=2), nn.ReLU(),
+        #     nn.Conv2d(32, 64, kernel_size=4, stride=2), nn.ReLU(),
+        #     nn.Conv2d(64, 128, kernel_size=6, stride=3), nn.ReLU(),
+        #     nn.Conv2d(128, 128, kernel_size=6, stride=3), nn.ReLU())
 
         # self.decoder = nn.Sequential(
         #     nn.ConvTranspose2d(128, 128, kernel_size=6, stride=3, output_padding=1),
@@ -204,42 +275,109 @@ class CNNAuxNet(pl.LightningModule):
         #     nn.Sigmoid())
 
 
-        # self.trafficlight = nn.Sequential(nn.Linear(3200, 64), nn.ReLU(),
+
+        numparams = sum(p.numel() for p in self.encoder.parameters() if p.requires_grad)
+        print('encoder params:', numparams)
+        print('encoder output shape:', self._get_flatten_size())
+        ####################################
+        ####################################
+        #### Autopilot & Aux MLPs
+        ####################################
+        sensor_len = 3
+        auxtask_len = 3
+        self.autopilotAC = nn.Sequential(nn.Linear(2*128 + 0, 1*64), nn.ReLU(),
+                        nn.Linear(1*64, 1*32), nn.ReLU(),
+                        nn.Linear(1*32, n_actions))
+
+        # self.trafficlight = nn.Sequential(nn.Linear(2*128 + 0, 64), nn.ReLU(),
         #                         nn.Linear(64, 32), nn.ReLU(),
         #                         nn.Linear(32, 3)) # red, green, none
 
-        self.autopilotAC = nn.Sequential(nn.Linear(3200, 200), nn.ReLU(),
-                        nn.Linear(200, 48), nn.ReLU(),
-                        nn.Linear(48, n_actions))
+        # self.trafficlight_feed =  nn.Sequential(nn.Linear(3, 18), nn.LeakyReLU(),
+        #                                 nn.Linear(18, 18))
 
+        # print(self.state_dict().items())
+        # print('level00')
+        # for  param in self.parameters():
+        #     print(param.requires_grad)
+        # print('level0')
+        # # for name, param in self.state_dict().items():
+        # for name, param in self.named_parameters():
+        #     print(name, param.requires_grad)
+        
 
+    def freezeLayers(self, selected_subnet=['encoder','decoder']):
+        '''Freezes selected subnet layers
+        '''
+        for name, param in self.named_parameters():
+            for subnet in selected_subnet: 
+                if subnet in name:
+                    param.requires_grad = False
+        print('\nFozen selected layers. Trainable weights are:')
+        for name, param in self.named_parameters():
+            if param.requires_grad:
+                print(name)
+
+    def loadWeights(self, ckpt_path, selected_subnet=['encoder', 'decoder']):
+        '''loads selected subnet weights
+        '''
+        
+        print('Loading weights.........................')
+        checkpoint = torch.load(ckpt_path)
+        trained_params = checkpoint['state_dict']
+        for name, param in self.state_dict().items():
+            for subnet in selected_subnet: 
+                if subnet in name:
+                    tr_param = trained_params['net.' + name]
+                    param.copy_(tr_param)
+                    print(subnet)
+        print('Loaded selected weights complete')
         
 
     @torch.no_grad()
     def _get_flatten_size(self):
-        x = self.encoder(self.example_input_array)
-        return x.shape[-1]
+        x = self.encoder(self.example_input_array[0])
+        return x.shape
 
 
     def forward(self, x):
-        h = self.encoder(x[0])
-        # print(h.shape)
-        # d_out = self.decoder(h)
-        d_out = 0.0
 
-        hflat = torch.flatten(h, start_dim=1)
+        d_out, traffic_out, act_out = None, None, None
+        ##########################################
+        ### Image CNN feed & reconstruction
+        ##########################################
+        h = self.encoder(x[0])
+        d_out = self.decoder(h)
+        hflat = torch.flatten(h, start_dim=1)    
+
         # latent = torch.cat((hflat, x[1]), dim=1)                 # add sensor data
         
-        # traffic_out = self.trafficlight(latent)
+        ##########################################
+        ### Traffic light
+        ##########################################
+        # traffic_out = self.trafficlight(latent)                  # with sensor data
         # traffic_out = self.trafficlight(hflat)                   # no sensor data
-        traffic_out = 0.0
+        # traffic_feed = self.trafficlight_feed(traffic_out)       # scaling inermidiate MLP
 
-        # final_latent = torch.cat((latent, traffic_out), dim=1)   # add traffic light detection output
-        # final_latent = torch.cat((hflat, traffic_out), dim=1)
-        act_out = self.autopilotAC(hflat)
+        ##########################################
+        ### Autopilot Action
+        ##########################################
+        # final_latent = torch.cat((latent, traffic_out), dim=1)   # concatenate aux output + sensor data
+        # final_latent = torch.cat((hflat, traffic_out), dim=1)    # concatenate aux output  
+        # final_latent = torch.cat((hflat, traffic_feed), dim=1)   # use aux scaling MLP
+        final_latent = hflat                                     # only hidden vector   
+        
+        act_out = self.autopilotAC(final_latent)
+        
+        ##########################################
+        ### zero other outputs based on config
+        ##########################################
+        if d_out is None:       d_out = 0
+        if traffic_out is None: traffic_out = 0
+        if act_out is None:     act_out = 0
+
         
         out = [d_out, traffic_out, act_out]
-
         return out
     
 

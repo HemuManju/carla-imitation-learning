@@ -5,15 +5,16 @@ camera: ['camera']
 
 ##-----------------------------------------------------#
 # Training parameters
-NUM_EPOCHS: 40
+NUM_EPOCHS: 50
 BATCH_SIZE: 64
-NUM_WORKERS: 10
-LEARNING_RATE: 0.001
+NUM_WORKERS: 11
+LEARNING_RATE: 0.0001
+WEIGHT_DECAY: 1e-6 #1e-4
 DROP_OUT: 0.20
 TEST_SIZE: 0.15
 VALID_SIZE: 0.15
 
-obs_size: 4
+obs_size: 1 #4
 n_actions: 9
 frame_skip: 4
 
