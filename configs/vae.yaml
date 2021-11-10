@@ -1,0 +1,25 @@
+##-----------------------------------------------------#
+# Network parameters
+encoder_config: null
+decoder_config: null
+
+##-----------------------------------------------------#
+# Training parameters
+NUM_EPOCHS: 200
+BATCH_SIZE: 32
+LEARNING_RATE: 0.0001
+DROP_OUT: 0.20
+TEST_SIZE: 0.15
+VALID_SIZE: 0.15
+image_size: [1, 256, 256]
+
+##-----------------------------------------------------#
+# Path
+logs_path: 'logs/'
+train_data_path: 'data/raw/train'
+val_data_path: 'data/raw/validation'
+test_data_path: 'data/raw/test'
+alpha: 1
+beta: 1
+
+pytorch_seed: 1337

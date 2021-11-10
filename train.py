@@ -1,168 +1,171 @@
+from datetime import date
+
 import torch
 import pytorch_lightning as pl
-import splitfolders
+from pytorch_lightning.callbacks.early_stopping import EarlyStopping
+
+from torchvision.utils import make_grid
+
+import matplotlib.pyplot as plt
 
 from src.data.stats import classification_accuracy
 
 from src.dataset import vae_dataset, imitation_dataset
 
+from src.architectures import layer_config
 from src.architectures.nets import CNNAutoEncoder, ConvNet1, ConvNetRawSegment
 
 from src.models.vae import VAE
 from src.models.imitation import Imitation
 
-from hydra.experimental import compose, initialize
+from src.visualization.visualize import show_grid
+
+import yaml
 from utils import skip_run, get_num_gpus
 
-# Initialize the config directory
-initialize(config_path="configs", job_name="vae")
-
-with skip_run('skip', 'split_image_folder') as check, check():
-    hparams = compose(config_name="config")
-    hparams['camera'] = 'camera'
-    log = hparams['train_logs'][0]
-
-    read_path = hparams['data_dir'] + 'raw' + '/' + log
-    print(read_path)
-    splitfolders.ratio(read_path,
-                       output=hparams['data_dir'] + 'processed' + '/' + log,
-                       seed=1337,
-                       ratio=(.8, 0.1, 0.1))
-
-with skip_run('skip', 'pooled_data_vae') as check, check():
-    # Load the parameters
-    hparams = compose(config_name="config")
-    hparams.camera = 'SL'
+with skip_run('run', 'vae_training') as check, check():
+    # Load the configuration
+    cfg = yaml.load(open('configs/vae.yaml'), Loader=yaml.SafeLoader)
+    cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/VAE'
 
     # Random seed
     gpus = get_num_gpus()
-    torch.manual_seed(hparams.pytorch_seed)
+    torch.manual_seed(cfg['pytorch_seed'])
 
     # Checkpoint
-    checkpoint_callback = pl.callbacks.ModelCheckpoint(monitor='val_loss',
-                                                       dirpath=hparams.log_dir,
-                                                       save_top_k=1,
-                                                       filename='vae',
-                                                       mode='min')
-    logger = pl.loggers.TensorBoardLogger(hparams.log_dir, name='vae')
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(
+        monitor='val_loss',
+        dirpath=cfg['logs_path'],
+        save_top_k=1,
+        filename='vae',
+        mode='min')
+    logger = pl.loggers.TensorBoardLogger(cfg['logs_path'], name='vae')
 
-    # Setup
-    hparams['train_logs'] = ['Log1', 'Log2', 'Log3', 'Log4', 'Log5', 'Log6']
-    net = CNNAutoEncoder(hparams)
-    x_out, mu, log_var = net(net.example_input_array)
-    data_loader = vae_dataset.train_val_test_iterator(
-        hparams, data_split_type='pooled_data')
-    model = VAE(hparams, net, data_loader)
+    # Setup the network
+    cfg['encoder_config'] = layer_config.layers_encoder_256_128
+    cfg['decoder_config'] = layer_config.layers_decoder_256_128
+    net = CNNAutoEncoder(cfg)
+
+    # Get the dataloaders
+    data_loader = vae_dataset.train_val_test_iterator(cfg)
+
+    # Setup the model and run
+    model = VAE(cfg, net, data_loader)
+    # Early stopping
+    early_stop_callback = EarlyStopping(monitor="val_loss",
+                                        patience=5,
+                                        verbose=False,
+                                        mode="min")
     trainer = pl.Trainer(gpus=gpus,
-                         max_epochs=hparams.NUM_EPOCHS,
+                         max_epochs=cfg['NUM_EPOCHS'],
                          logger=logger,
-                         callbacks=[checkpoint_callback])
+                         callbacks=[checkpoint_callback, early_stop_callback])
     trainer.fit(model)
 
-with skip_run('skip', 'leave_one_out_data_vae') as check, check():
-    # Load the parameters
-    hparams = compose(config_name="config")
-    hparams.logs
-    hparams.camera = 'SL'
+with skip_run('skip', 'vae_inference') as check, check():
+    # Load the configuration
+    cfg = yaml.load(open('configs/vae.yaml'), Loader=yaml.SafeLoader)
+    cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/VAE'
 
     # Random seed
     gpus = get_num_gpus()
-    torch.manual_seed(hparams.pytorch_seed)
+    torch.manual_seed(cfg['pytorch_seed'])
 
-    # Checkpoint
-    checkpoint_callback = pl.callbacks.ModelCheckpoint(monitor='val_loss',
-                                                       dirpath=hparams.log_dir,
-                                                       save_top_k=1,
-                                                       filename='vae',
-                                                       mode='min')
-    logger = pl.loggers.TensorBoardLogger(hparams.log_dir, name='vae')
+    # Restore the model and put in eval() mode
+    cfg['encoder_config'] = layer_config.layers_encoder_256_128
+    cfg['decoder_config'] = layer_config.layers_decoder_256_128
+    net = CNNAutoEncoder(cfg)
+    check_point_path = 'logs/2021-11-09/VAE/vae-v2.ckpt'
+    model = VAE.load_from_checkpoint(check_point_path,
+                                     hparams=cfg,
+                                     net=net,
+                                     data_loader=None)
+    model = model.to("cuda")
+    model.eval()
+    model.freeze()
 
-    # Setup
-    hparams['train_logs'] = ['Log1', 'Log2', 'Log3', 'Log4', 'Log5']
-    hparams['test_logs'] = ['Log6']
-    net = CNNAutoEncoder(hparams)
-    x_out, mu, log_var = net(net.example_input_array)
-    data_loader = vae_dataset.train_val_test_iterator(
-        hparams, data_split_type='leave_one_out_data')
-    model = VAE(hparams, net, data_loader)
-    trainer = pl.Trainer(gpus=gpus,
-                         max_epochs=hparams.NUM_EPOCHS,
-                         logger=logger,
-                         callbacks=[checkpoint_callback])
-    trainer.fit(model)
+    # Data loader
+    data_loader = vae_dataset.train_val_test_iterator(cfg)
+    for data in data_loader['test_data_loader']:
+        x_out, mu, log_var = model(data.to("cuda"))
+        imgs = make_grid(x_out)
+        show_grid(imgs)
+        imgs = make_grid(data)
+        show_grid(imgs)
+        plt.show()
 
 with skip_run('skip', 'behavior_cloning') as check, check():
-    # Load the parameters
-    hparams = compose(config_name="config", overrides=['model=imitation'])
+    # Load the configuration
+    cfg = yaml.load(open('configs/vae.yaml'), Loader=yaml.SafeLoader)
+    cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/VAE'
 
     camera_type = ['camera', 'semantic']
     for camera in camera_type:
-        hparams['camera'] = camera
+        cfg['camera'] = camera
 
         # Random seed
         gpus = get_num_gpus()
-        torch.manual_seed(hparams.pytorch_seed)
+        torch.manual_seed(cfg.pytorch_seed)
 
         # Checkpoint
         checkpoint_callback = pl.callbacks.ModelCheckpoint(
             monitor='val_loss',
-            dirpath=hparams.log_dir,
+            dirpath=cfg.log_dir,
             save_top_k=1,
             filename='imitation',
             mode='min')
-        logger = pl.loggers.TensorBoardLogger(hparams.log_dir,
-                                              name='imitation')
+        logger = pl.loggers.TensorBoardLogger(cfg.log_dir, name='imitation')
 
         # Setup
-        hparams['train_logs'] = ['Log1']
-        net = ConvNet1(hparams)
+        cfg['train_logs'] = ['Log1']
+        net = ConvNet1(cfg)
         actions = net(net.example_input_array)
         print(actions)  # verification
-        data_loader = imitation_dataset.sequential_train_val_test_iterator(
-            hparams)
-        model = Imitation(hparams, net, data_loader)
+        data_loader = imitation_dataset.sequential_train_val_test_iterator(cfg)
+        model = Imitation(cfg, net, data_loader)
         trainer = pl.Trainer(gpus=gpus,
-                             max_epochs=hparams.NUM_EPOCHS,
+                             max_epochs=cfg.NUM_EPOCHS,
                              logger=logger,
                              callbacks=[checkpoint_callback])
         trainer.fit(model)
 
 with skip_run('skip', 'behavior_cloning_with_raw_segmented') as check, check():
     # Load the parameters
-    hparams = compose(config_name="config", overrides=['model=imitation'])
+    cfg = yaml.load(open('configs/imitation.yaml'), Loader=yaml.SafeLoader)
 
     camera_type = ['camera', 'semantic']
     for camera in camera_type:
-        hparams['camera'] = camera
+        cfg['camera'] = camera
 
         # Random seed
         gpus = get_num_gpus()
-        torch.manual_seed(hparams.pytorch_seed)
+        torch.manual_seed(cfg.pytorch_seed)
 
         # Checkpoint
         checkpoint_callback = pl.callbacks.ModelCheckpoint(
             monitor='val_loss',
-            dirpath=hparams.log_dir,
+            dirpath=cfg.log_dir,
             save_top_k=1,
             filename='imitation',
             mode='min')
-        logger = pl.loggers.TensorBoardLogger(hparams.log_dir,
-                                              name='imitation')
+        logger = pl.loggers.TensorBoardLogger(cfg.log_dir, name='imitation')
 
         # Setup
-        hparams['train_logs'] = ['Log1']
-        net = ConvNetRawSegment(hparams)
+        cfg['train_logs'] = ['Log1']
+        net = ConvNetRawSegment(cfg)
         actions = net(net.example_input_array)
         print(actions)  # verification
-        data_loader = imitation_dataset.sequential_train_val_test_iterator(
-            hparams)
-        model = Imitation(hparams, net, data_loader)
+        data_loader = imitation_dataset.sequential_train_val_test_iterator(cfg)
+        model = Imitation(cfg, net, data_loader)
         trainer = pl.Trainer(gpus=gpus,
-                             max_epochs=hparams.NUM_EPOCHS,
+                             max_epochs=cfg.NUM_EPOCHS,
                              logger=logger,
                              callbacks=[checkpoint_callback])
         trainer.fit(model)
 
 with skip_run('skip', 'algorithm_stats') as check, check():
-    hparams = compose(config_name="config")
-    classification_accuracy(hparams)
+    cfg = yaml.load(open('configs/vae.yaml'), Loader=yaml.SafeLoader)
+    classification_accuracy(cfg)
+
+with skip_run('skip', 'testing_logics') as check, check():
+    pass

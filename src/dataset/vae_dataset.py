@@ -1,13 +1,12 @@
-import numpy as np
-from skimage.io import imread_collection
-
-from sklearn.model_selection import train_test_split
+from PIL import Image
 
 import torch
 from torchvision import transforms
 
 from torch.utils.data import Dataset
 from torch.utils.data import DataLoader
+
+from .utils import get_image_json_files
 
 
 class TorchDataset(Dataset):
@@ -39,12 +38,36 @@ class TorchDataset(Dataset):
         return self.images.shape[0]
 
 
-def train_val_test_iterator(hparams, data_split_type=None):
+class VAETorchDataset(Dataset):
+    def __init__(self, read_path):
+        """
+        Args:
+            path (str): path to the dataset folder
+            logs (list): list of log folders
+            cameras (list): list of camera folders
+            transform (torchvision.transforms): transforms to apply to image
+        """
+        # Compose transforms
+        self.transform = transforms.ToTensor()
+
+        self.image_files, json_files = get_image_json_files(
+            read_path=read_path)
+
+    def __getitem__(self, index):
+        """Get single image."""
+        return self.transform(Image.open(self.image_files[index]).convert('L'))
+
+    def __len__(self):
+        """Return dataset length."""
+        return len(self.image_files)
+
+
+def train_val_test_iterator(config):
     """A function to get train, validation, and test data.
 
     Parameters
     ----------
-    hparams : yaml
+    config : yaml
         The hparamsuration file.
     leave_out : bool
         Whether to leave out some subjects training and use them in testing
@@ -56,90 +79,24 @@ def train_val_test_iterator(hparams, data_split_type=None):
 
     """
     # Parameters
-    BATCH_SIZE = hparams['BATCH_SIZE']
-
-    # Get training, validation, and testing data
-    get_data = {
-        'pooled_data': get_pooled_data,
-        'leave_one_out_data': get_leave_out_data
-    }
-    train_data, valid_data, test_data = get_data[data_split_type](hparams)
+    BATCH_SIZE = config['BATCH_SIZE']
 
     # Create train, validation, test datasets and save them in a dictionary
     data_iterator = {}
-    train_data = TorchDataset(train_data)
+    train_data = VAETorchDataset(read_path=config['train_data_path'])
     data_iterator['train_data_loader'] = DataLoader(train_data,
                                                     batch_size=BATCH_SIZE,
-                                                    shuffle=True)
+                                                    shuffle=True,
+                                                    num_workers=4)
 
-    valid_data = TorchDataset(valid_data)
+    valid_data = VAETorchDataset(read_path=config['val_data_path'])
     data_iterator['val_data_loader'] = DataLoader(valid_data,
-                                                  batch_size=BATCH_SIZE)
+                                                  batch_size=BATCH_SIZE,
+                                                  num_workers=4)
 
-    test_data = TorchDataset(test_data)
+    test_data = VAETorchDataset(read_path=config['test_data_path'])
     data_iterator['test_data_loader'] = DataLoader(test_data,
-                                                   batch_size=BATCH_SIZE)
+                                                   batch_size=BATCH_SIZE,
+                                                   num_workers=4)
 
     return data_iterator
-
-
-def get_pooled_data(hparams):
-    read_paths = []
-    camera = hparams['camera']
-    for log in hparams['train_logs']:
-        read_paths.append(hparams['data_dir'] + 'raw' + '/' + log + '/' +
-                          camera + '_resized_224_bw' + '/*.png')
-    images = imread_collection(read_paths).concatenate()
-
-    # Split train and validation
-    test_size = hparams['TEST_SIZE']
-    ids = np.arange(len(images))
-    train_id, test_id, _, _ = train_test_split(ids,
-                                               ids * 0,
-                                               test_size=test_size,
-                                               shuffle=True)
-
-    # Data containers
-    train_data = images[train_id]
-    test_data = images[test_id]
-
-    # Split val from train data
-    val_size = hparams['VAL_SIZE']
-    ids = np.arange(len(train_data))
-    train_id, val_id, _, _ = train_test_split(ids,
-                                              ids * 0,
-                                              test_size=val_size,
-                                              shuffle=True)
-
-    val_data = train_data[val_id]
-    train_data = train_data[train_id]
-
-    return train_data, val_data, test_data
-
-
-def get_leave_out_data(hparams):
-    read_paths = []
-    camera = hparams['camera']
-    for log in hparams['train_logs']:
-        read_paths.append(hparams['data_dir'] + 'raw' + '/' + log + '/' +
-                          camera + '_resized_224_bw' + '/*.png')
-    images = imread_collection(read_paths).concatenate()
-
-    # Split train and validation
-    val_size = hparams['VALID_SIZE']
-    ids = np.arange(len(images))
-    train_id, val_id, _, _ = train_test_split(ids,
-                                              ids * 0,
-                                              test_size=val_size,
-                                              shuffle=True)
-    train_data = images[train_id]
-    val_data = images[val_id]
-
-    # Testing data
-    read_paths = []
-    for log in hparams['test_logs']:
-        read_paths.append(hparams['data_dir'] + 'raw' + '/' + log + '/' +
-                          camera + '_resized_224_bw' + '/*.png')
-    test_data = imread_collection(read_paths).concatenate()
-
-    return train_data, val_data, test_data
