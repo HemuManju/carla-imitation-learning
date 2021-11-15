@@ -154,7 +154,7 @@ class CNNAuxNet(pl.LightningModule):
         obs_size = hparams['obs_size']
         n_actions = hparams['n_actions']
 
-        self.example_input_array = [torch.randn((1, obs_size, 256, 256)), torch.randn((1, 3))]          # image and sensor
+        self.example_input_array = [torch.randn((64, obs_size, 256, 256)), torch.randn((1, 3))]          # image and sensor
 
         ####################################
         #### 1. CNN with BN
@@ -197,20 +197,20 @@ class CNNAuxNet(pl.LightningModule):
 
         ### 256 latent size
         self.encoder = nn.Sequential(
-        nn.Conv2d(obs_size, 32, kernel_size=7, stride=3), nn.Dropout(.2), nn.ReLU(),
-        nn.Conv2d(32, 32, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
-        nn.Conv2d(32, 64, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
-        nn.Conv2d(64, 128, kernel_size=3, stride=2), nn.Dropout(.2), nn.ReLU(),
+        nn.Conv2d(obs_size, 32, kernel_size=7, stride=3), nn.ReLU(),
+        nn.Conv2d(32, 32, kernel_size=5, stride=3), nn.ReLU(),
+        nn.Conv2d(32, 64, kernel_size=5, stride=3),  nn.ReLU(),
+        nn.Conv2d(64, 128, kernel_size=3, stride=2), nn.ReLU(),
         nn.Conv2d(128, 256, kernel_size=3, stride=2)
         )
-        self.decoder = nn.Sequential(
-            nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, output_padding=0), nn.ReLU(),
-            nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, output_padding=1), nn.ReLU(), 
-            nn.ConvTranspose2d(64, 32, kernel_size=5, stride=3, output_padding=1), nn.ReLU(), 
-            nn.ConvTranspose2d(32, 32, kernel_size=5, stride=3, output_padding=1), nn.ReLU(), 
-            nn.ConvTranspose2d(32, obs_size, kernel_size=7, stride=3),
-            nn.Sigmoid()
-        )
+        # self.decoder = nn.Sequential(
+        #     nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, output_padding=0), nn.ReLU(),
+        #     nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, output_padding=1), nn.ReLU(), 
+        #     nn.ConvTranspose2d(64, 32, kernel_size=5, stride=3, output_padding=1), nn.ReLU(), 
+        #     nn.ConvTranspose2d(32, 32, kernel_size=5, stride=3, output_padding=1), nn.ReLU(), 
+        #     nn.ConvTranspose2d(32, obs_size, kernel_size=7, stride=3),
+        #     nn.Sigmoid()
+        # )
 
         ### 1024 latent size
         # self.encoder = nn.Sequential(
@@ -252,6 +252,53 @@ class CNNAuxNet(pl.LightningModule):
         ####################################
         #### 3. CNN other
         ####################################
+        ### Andrey's 256
+        # self.encoder = nn.Sequential(
+        #     nn.Conv2d(1, 4, kernel_size=3, stride=2, padding=1), nn.BatchNorm2d(4), nn.ReLU(),
+        #     nn.Conv2d(4, 4, kernel_size=3, stride=1, padding=1), nn.BatchNorm2d(4), nn.ReLU(),
+        #     # 64x64x16
+        #     nn.Conv2d(4, 8, kernel_size=3, stride=2, padding=1), nn.BatchNorm2d(8), nn.ReLU(),
+        #     nn.Conv2d(8, 8, kernel_size=3, stride=1, padding=1), nn.BatchNorm2d(8), nn.ReLU(),
+        #     # 32x32x32
+        #     nn.Conv2d(8, 16, kernel_size=3, stride=2, padding=1), nn.BatchNorm2d(16), nn.ReLU(),
+        #     nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1), nn.BatchNorm2d(16), nn.ReLU(),
+        #     # 16x16x64
+        #     nn.Conv2d(16, 32, kernel_size=3, stride=2, padding=1), nn.BatchNorm2d(32), nn.ReLU(),
+        #     nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1), nn.BatchNorm2d(32), nn.ReLU(),
+        #     # 8x8x128
+        #     nn.Conv2d(32, 64, kernel_size=3, stride=2, padding=1), nn.BatchNorm2d(64), nn.ReLU(),
+        #     nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1), nn.BatchNorm2d(64), nn.ReLU(),
+        #     # # 4x4x256
+        #     nn.Conv2d(64, 128, kernel_size=3, stride=2, padding=1), nn.BatchNorm2d(128), nn.ReLU(),
+        #     nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1), nn.BatchNorm2d(128), nn.ReLU(),
+        #     # # 1x1x512
+        #     nn.Conv2d(128, 256, kernel_size=3, stride=2, padding=0), nn.BatchNorm2d(256), nn.ReLU()
+        # )
+
+        # self.decoder = nn.Sequential(
+        #     nn.ConvTranspose2d(256, 128, kernel_size=3, stride=2, padding=0, output_padding=1), nn.BatchNorm2d(128), nn.ReLU(),
+        #     nn.Conv2d(128, 128, kernel_size=3, stride=1, padding=1), nn.BatchNorm2d(128), nn.ReLU(),
+        #     # 8x8x128
+        #     nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, padding=1, output_padding=1), nn.BatchNorm2d(64), nn.ReLU(),
+        #     nn.Conv2d(64, 64, kernel_size=3, stride=1, padding=1), nn.BatchNorm2d(64), nn.ReLU(),
+        #     # 16x16x64
+        #     nn.ConvTranspose2d(64, 32, kernel_size=3, stride=2, padding=1, output_padding=1), nn.BatchNorm2d(32), nn.ReLU(),
+        #     nn.Conv2d(32, 32, kernel_size=3, stride=1, padding=1), nn.BatchNorm2d(32), nn.ReLU(),
+        #     # 32x32x32
+        #     nn.ConvTranspose2d(32, 16, kernel_size=3, stride=2, padding=1, output_padding=1), nn.BatchNorm2d(16), nn.ReLU(),
+        #     nn.Conv2d(16, 16, kernel_size=3, stride=1, padding=1), nn.BatchNorm2d(16), nn.ReLU(),
+        #     # 64x64x16
+        #     nn.ConvTranspose2d(16, 8, kernel_size=3, stride=2, padding=1, output_padding=1), nn.BatchNorm2d(8), nn.ReLU(),
+        #     nn.Conv2d(8, 8, kernel_size=3, stride=1, padding=1), nn.BatchNorm2d(8), nn.ReLU(),
+        #     # 128x128x8
+        #     nn.ConvTranspose2d(8, 4, kernel_size=3, stride=2, padding=1, output_padding=1), nn.BatchNorm2d(4), nn.ReLU(),
+        #     nn.Conv2d(4, 4, kernel_size=3, stride=1, padding=1), nn.BatchNorm2d(4), nn.ReLU(),
+        #     # 256x256x3
+        #     nn.ConvTranspose2d(4, 1, kernel_size=3, stride=2, padding=1, output_padding=1), nn.BatchNorm2d(1), nn.ReLU()
+        # )
+
+
+
         # self.encoder = nn.Sequential(
         # nn.Conv2d(obs_size, 32, kernel_size=7, stride=3),  nn.ReLU(),
         # nn.Conv2d(32, 32, kernel_size=5, stride=3), nn.ReLU(),
@@ -259,7 +306,6 @@ class CNNAuxNet(pl.LightningModule):
         # nn.Conv2d(64, 64, kernel_size=3, stride=2), nn.ReLU(),
         # nn.Conv2d(64, 128, kernel_size=3, stride=2)
         # )
-
 
         # self.encoder = nn.Sequential(
         #     nn.Conv2d(obs_size, 32, kernel_size=4, stride=2), nn.ReLU(),
@@ -283,7 +329,7 @@ class CNNAuxNet(pl.LightningModule):
         ####################################
         #### Autopilot & Aux MLPs
         ####################################
-        sensor_len = 3
+        sensor_len = 4
         auxtask_len = 3
         self.autopilotAC = nn.Sequential(nn.Linear(2*128 + 0, 1*64), nn.ReLU(),
                         nn.Linear(1*64, 1*32), nn.ReLU(),
@@ -295,15 +341,11 @@ class CNNAuxNet(pl.LightningModule):
 
         # self.trafficlight_feed =  nn.Sequential(nn.Linear(3, 18), nn.LeakyReLU(),
         #                                 nn.Linear(18, 18))
+    
+        # self.frontcar_dist = nn.Sequential(nn.Linear(2*128 + 0, 64), nn.ReLU(),
+        #                         nn.Linear(64, 32), nn.ReLU(),
+        #                         nn.Linear(32, 4)) # dist to front car
 
-        # print(self.state_dict().items())
-        # print('level00')
-        # for  param in self.parameters():
-        #     print(param.requires_grad)
-        # print('level0')
-        # # for name, param in self.state_dict().items():
-        # for name, param in self.named_parameters():
-        #     print(name, param.requires_grad)
         
 
     def freezeLayers(self, selected_subnet=['encoder','decoder']):
@@ -342,12 +384,12 @@ class CNNAuxNet(pl.LightningModule):
 
     def forward(self, x):
 
-        d_out, traffic_out, act_out = None, None, None
+        d_out, traffic_out, act_out, dist_out = None, None, None, None
         ##########################################
         ### Image CNN feed & reconstruction
         ##########################################
         h = self.encoder(x[0])
-        d_out = self.decoder(h)
+        # d_out = self.decoder(h)
         hflat = torch.flatten(h, start_dim=1)    
 
         # latent = torch.cat((hflat, x[1]), dim=1)                 # add sensor data
@@ -368,6 +410,12 @@ class CNNAuxNet(pl.LightningModule):
         final_latent = hflat                                     # only hidden vector   
         
         act_out = self.autopilotAC(final_latent)
+
+
+        ##########################################
+        ### Dist to front vehicle
+        ##########################################
+        # dist_out = self.frontcar_dist(hflat)
         
         ##########################################
         ### zero other outputs based on config
@@ -375,9 +423,10 @@ class CNNAuxNet(pl.LightningModule):
         if d_out is None:       d_out = 0
         if traffic_out is None: traffic_out = 0
         if act_out is None:     act_out = 0
+        if dist_out is None:    dist_out = 0
 
         
-        out = [d_out, traffic_out, act_out]
+        out = [d_out, traffic_out, act_out, dist_out]
         return out
     
 

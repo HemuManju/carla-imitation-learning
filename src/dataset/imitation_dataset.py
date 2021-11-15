@@ -115,12 +115,26 @@ class SequentialTorchDataset(Dataset):
         # self.y = actions[self.file_idx, None]
 
 
-        action_ind = continous_to_discreet(csv_data)    # autopilot action
-        redlight_status = csv_data[:,-1]                # redlight detection
-        sensor = csv_data[:, 0:4]                       # sensor data
-        sensor = np.delete(sensor, 1, 1)                # remove desired steering
+        action_ind = continous_to_discreet(hparams, csv_data)    # autopilot action
+        # redlight_status = csv_data[:,-1]                # redlight detection
+        # sensor = csv_data[:, 0:4]                       # sensor data
+        # sensor = np.delete(sensor, 1, 1)                # remove desired steering
 
-        target = np.stack((redlight_status, action_ind), axis=-1)
+        redlight_status = csv_data[:,6]                 # redlight detection
+        frontcar_dist = frontcardist_to_discrete(csv_data[:,7])   # dist to front car
+        sensor = csv_data[:, 0:3]                       # sensor data
+
+        # unique, counts = np.unique(temp, return_counts=True)
+        # vals = dict(zip(unique, counts))
+        # counts = dict((i, temp.count(i)) for i in temp)
+        # plt.hist(frontcar_dist, density=True, bins=10)  # density=False would make counts
+        # plt.ylabel('Probability')
+        # plt.xlabel('Data')
+        # plt.show()
+        
+
+        # target = np.stack((redlight_status, action_ind), axis=-1)
+        target = np.stack((redlight_status, action_ind, frontcar_dist), axis=-1)
         self.y = target[self.file_idx, None]
         self.sensor_data = sensor[self.file_idx, None]
 
@@ -155,16 +169,16 @@ class SequentialTorchDataset(Dataset):
             index = index+12
         # Load the image
         x = self._load_file(index)
-        x_sem = self._load_file(index, modality='semantic')
+        # x_sem = self._load_file(index, modality='semantic')
 
         # Transform
         x = torch.from_numpy(x).type(torch.float32)
-        x_sem = torch.from_numpy(x_sem).type(torch.float32)
+        # x_sem = torch.from_numpy(x_sem).type(torch.float32)
         y = torch.from_numpy(self.y[index]).type(torch.long).squeeze(0)
         sensor = torch.from_numpy(self.sensor_data[index]).type(torch.float32).squeeze(0)
         
-        # x = (x, sensor)
-        x = (x, sensor, x_sem)
+        x = (x, sensor)
+        # x = (x, sensor, x_sem)
 
         return x, y
 
@@ -262,17 +276,22 @@ def sequential_train_val_test_iterator(hparams):
     return data_iterator
 
 
-def continous_to_discreet(y):
-    begInd = 4
+def continous_to_discreet(hparams, y):
+    if 'data4' in hparams['data_dir']:
+        begInd = 4
+    if 'data5' in hparams['data_dir']:
+        begInd = 3
     steer = y[:, 1+begInd].copy()
+    temp = steer.copy()
     # Discretize
-    steer[y[:, 1] > 0.05] = 2.0
-    steer[y[:, 1] < -0.05] = 0.0
+    steer[temp>0.05] = 2.0
+    steer[temp<-0.05] = 0.0
     steer[~np.logical_or(steer == 0.0, steer == 2.0)] = 1.0
 
     # Discretize throttle and brake
     throttle = y[:, 0+begInd]
     brake = y[:, 2+begInd]
+    print('unique throttle values:',np.unique(throttle))
 
     acc = brake.copy()
     acc[np.logical_and(brake == 0.0, throttle == 1.0)] = 2.0
@@ -284,6 +303,17 @@ def continous_to_discreet(y):
     action_ind = actions[:, 0] * 3 + actions[:, 1]
 
     return action_ind
+
+def frontcardist_to_discrete(y):
+    y[y<=10.0] = 0
+    y[np.logical_and(y>10, y<=15)] = 1
+    y[np.logical_and(y>15, y<=20)] = 2
+    y[y>20] = 3
+    
+    frontdist_ind = y
+
+    return frontdist_ind
+
 
 
 def get_pooled_data(hparams):

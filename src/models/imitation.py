@@ -17,22 +17,26 @@ def lossCriterion(obj, inp, out):
     ### calculate loss
     # l1 = nn.functional.mse_loss(inp[0], out[0][0])                        # image reconstruction MSE
     # l1 = 1 - ms_ssim(inp[0], out[0][0], data_range=1, size_average=True)  # image reconstruction
-    l1 = 1 - ms_ssim(inp[0], out[0][2], data_range=1, size_average=True)    # semantic segmentation
+    # l1 = 1 - ms_ssim(inp[0], out[0][2], data_range=1, size_average=True)  # semantic segmentation
     # l2 = nn.functional.cross_entropy(inp[1], out[1][:,0])                 # trafficlight status detection
     l3 = nn.functional.cross_entropy(inp[2], out[1][:,1])                 # Autopilot Action
+    # l4 = nn.functional.cross_entropy(inp[3], out[1][:,2])                 # dist to front car
    
     ### plot loss
     # print('loss:',l1.item(), l2.item(), l3.item())
-    obj.log('image_recons_loss', l1.item(), on_step=False, on_epoch=True)
-    obj.log('traffic_loss', l2.item(), on_step=False, on_epoch=True)
+    # obj.log('image_recons_loss', l1.item(), on_step=False, on_epoch=True)
+    # obj.log('traffic_loss', l2.item(), on_step=False, on_epoch=True)
+    # print('loss', l3.item(), l4.item())
     obj.log('autopilot_action_loss', l3.item(), on_step=False, on_epoch=True)
+    # obj.log('frontcar_dist_loss', l4.item(), on_step=False, on_epoch=True)
 
     ### weighted summation
     # loss = 2*l1 + l2 + l3
     # loss = l2 + 3*l3
-    loss = 2*l1 + l3
-    # loss = l3
+    # loss = 2*l1 + l3
+    loss = l3
     # loss = l1
+    # loss = l3 + l4
     return loss
 
 
@@ -96,14 +100,15 @@ class Imitation(pl.LightningModule):
     def calcAccuracy(self):
         self.net.eval()
         with torch.no_grad(): 
-            dataloader = self.data_loader['train_dataloader']
+            dataloader = self.data_loader['val_dataloader']
             # train_features, train_labels = next(iter(train_dataloader))
-            corrects_total = {'tr':0, 'act':0}
+            corrects_total = {'tr':0, 'act':0, 'dist':0}
 
             labels = []
             predicted = []
             for i, batch in enumerate(dataloader):
                 x, y = batch
+                bsz = y[:,1].shape[0]
 
                 # Pass through the network
                 output = self.net(x)
@@ -112,18 +117,21 @@ class Imitation(pl.LightningModule):
                 ### calculate accuracy
                 # corrects_1 = (torch.argmax(output[1],dim=1) == target[1][:,0]).sum()  # trafficlight status detection
                 corrects_2 = (torch.argmax(output[2],dim=1) == target[1][:,1]).sum()    # autopilot action detection
+                # corrects_3 = (torch.argmax(output[3],dim=1) == target[1][:,2]).sum()    
                 corrects_1 = 0                                                          # if no aux task
-
+                corrects_3 = 0
 
                 # predicted.append(torch.argmax(output[1],dim=1).cpu().detach().numpy())
                 # labels.append(y.cpu().detach().numpy())
                 # print(torch.argmax(output[1],dim=1).cpu().detach().numpy())
                 # print(target[1][:,0].cpu().detach().numpy())
+
                 
                 corrects_total['tr'] += corrects_1
                 corrects_total['act'] += corrects_2
-                print('batch {}/{} - batch acc: {:.3f}\t{:.3f}'.format(i,len(dataloader),
-                float(corrects_1/target[1][:,1].shape[0]), float(corrects_2/target[1][:,1].shape[0])))
+                corrects_total['dist'] += corrects_3
+                print('batch {}/{} - batch acc: {:.3f}\t{:.3f}\t{:.3f}'.format(i,len(dataloader),
+                float(corrects_1/bsz), float(corrects_2/bsz), float(corrects_3/bsz)))
 
             # predicted = np.concatenate(predicted, axis=0 )
             # labels =  np.concatenate(labels, axis=0 )
@@ -131,6 +139,7 @@ class Imitation(pl.LightningModule):
             
             print('accuracy total (traffic light): {}/{}'.format(corrects_total['tr'], 64*dataloader.__len__()))
             print('accuracy total (autopilot action): {}/{}'.format(corrects_total['act'], 64*dataloader.__len__()))
+            print('accuracy total (frontcar dist): {}/{}'.format(corrects_total['dist'], 64*dataloader.__len__()))
             print('accuracy total: {}/{}'.format(corrects_total['tr'], self.h_params['BATCH_SIZE']*dataloader.__len__()))
 
     def sampleOutput(self):
@@ -142,10 +151,10 @@ class Imitation(pl.LightningModule):
             # print(object_methods)
 
 
-            # data = dataloader.giveData()
+            # data = dataloader.y
             # print(data.shape)
 
-            # plt.hist(data[:,0], density=True, bins=30)  # density=False would make counts
+            # plt.hist(data[:,2], density=True, bins=30)  # density=False would make counts
             # plt.ylabel('Probability')
             # plt.xlabel('Data');
 
