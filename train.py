@@ -127,7 +127,7 @@ with skip_run('skip', 'behavior_cloning') as check, check():
         trainer.fit(model)
 
 
-with skip_run('run', 'aux') as check, check():
+with skip_run('skip', 'aux') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
 
@@ -170,7 +170,7 @@ with skip_run('run', 'aux') as check, check():
         trainer.fit(model)
 
 
-with skip_run('skip', 'test') as check, check():
+with skip_run('run', 'test') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
 
@@ -202,7 +202,7 @@ with skip_run('skip', 'test') as check, check():
             hparams)
         model = Imitation(hparams, net, data_loader)
         model = model.load_from_checkpoint(
-            'logs/2021-11-15/imitation.ckpt', hparams=hparams, net=net, data_loader=data_loader)
+            'logs/2021-11-15/imitation-v2.ckpt', hparams=hparams, net=net, data_loader=data_loader)
         model.calcAccuracy()
         # model.sampleOutput()
 

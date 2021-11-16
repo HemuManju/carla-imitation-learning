@@ -1,3 +1,4 @@
+from itertools import count
 import os
 
 from matplotlib import pyplot as plt
@@ -137,6 +138,7 @@ class SequentialTorchDataset(Dataset):
         target = np.stack((redlight_status, action_ind, frontcar_dist), axis=-1)
         self.y = target[self.file_idx, None]
         self.sensor_data = sensor[self.file_idx, None]
+        print('Data dir is:', hparams['data_dir'])
 
         print('y.shape', self.y.shape, self.sensor_data.shape)
 
@@ -305,14 +307,34 @@ def continous_to_discreet(hparams, y):
     return action_ind
 
 def frontcardist_to_discrete(y):
-    y[y<=10.0] = 0
-    y[np.logical_and(y>10, y<=15)] = 1
-    y[np.logical_and(y>15, y<=20)] = 2
-    y[y>20] = 3
-    
-    frontdist_ind = y
+    dist_ind = y.copy()
+    dist_ind[y<=10.0] = 0
+    dist_ind[np.logical_and(y>10, y<=15)] = 1
+    dist_ind[np.logical_and(y>15, y<=20)] = 2
+    dist_ind[y>20] = 3
 
-    return frontdist_ind
+    ### get data distribution
+    # temp = np.around(temp, decimals=1)
+    # unique, counts = np.unique(temp, return_counts=True)
+    # vals = dict(zip(unique.astype(int), counts/counts.sum()))
+    # print(vals)
+
+    # plt.hist(temp, density=True, bins='auto')  # density=False would make counts
+    # plt.ylabel('Probability')
+    # plt.xlabel('Data')
+    # plt.show()
+
+    
+
+    ### class-balanced loss weight
+    unique, counts = np.unique(dist_ind, return_counts=True)
+    beta = 0.998     # CB loss (b=0 no weighing, b=1 means weighing by inverse frequency)
+    class_weight = (1.0-beta)/(1-np.power(beta, counts))
+
+    # class_weight = np.reciprocal(traindata_sum, where = traindata_sum > 0)
+    class_weight = torch.from_numpy(class_weight)
+
+    return dist_ind
 
 
 
