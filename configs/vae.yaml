@@ -6,7 +6,7 @@ decoder_config: null
 ##-----------------------------------------------------#
 # Training parameters
 NUM_EPOCHS: 200
-BATCH_SIZE: 32
+BATCH_SIZE: 64
 LEARNING_RATE: 0.0001
 DROP_OUT: 0.20
 TEST_SIZE: 0.15

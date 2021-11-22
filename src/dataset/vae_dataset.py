@@ -39,7 +39,7 @@ class TorchDataset(Dataset):
 
 
 class VAETorchDataset(Dataset):
-    def __init__(self, read_path):
+    def __init__(self, read_path, config=None):
         """
         Args:
             path (str): path to the dataset folder
@@ -62,7 +62,31 @@ class VAETorchDataset(Dataset):
         return len(self.image_files)
 
 
-def train_val_test_iterator(config):
+class SeqVAETorchDataset(Dataset):
+    def __init__(self, read_path, config=None):
+        """
+        Args:
+            path (str): path to the dataset folder
+            logs (list): list of log folders
+            cameras (list): list of camera folders
+            transform (torchvision.transforms): transforms to apply to image
+        """
+        # Compose transforms
+        self.transform = transforms.ToTensor()
+
+        self.image_files, json_files = get_image_json_files(
+            read_path=read_path)
+
+    def __getitem__(self, index):
+        """Get single image."""
+        return self.transform(Image.open(self.image_files[index]).convert('L'))
+
+    def __len__(self):
+        """Return dataset length."""
+        return len(self.image_files)
+
+
+def train_val_test_iterator(config, dataset_type='individual'):
     """A function to get train, validation, and test data.
 
     Parameters
@@ -80,21 +104,22 @@ def train_val_test_iterator(config):
     """
     # Parameters
     BATCH_SIZE = config['BATCH_SIZE']
+    dataset = {'individual': VAETorchDataset, 'sequential': SeqVAETorchDataset}
 
     # Create train, validation, test datasets and save them in a dictionary
     data_iterator = {}
-    train_data = VAETorchDataset(read_path=config['train_data_path'])
+    train_data = dataset[dataset_type](read_path=config['train_data_path'])
     data_iterator['train_data_loader'] = DataLoader(train_data,
                                                     batch_size=BATCH_SIZE,
                                                     shuffle=True,
                                                     num_workers=4)
 
-    valid_data = VAETorchDataset(read_path=config['val_data_path'])
+    valid_data = dataset[dataset_type](read_path=config['val_data_path'])
     data_iterator['val_data_loader'] = DataLoader(valid_data,
                                                   batch_size=BATCH_SIZE,
                                                   num_workers=4)
 
-    test_data = VAETorchDataset(read_path=config['test_data_path'])
+    test_data = dataset[dataset_type](read_path=config['test_data_path'])
     data_iterator['test_data_loader'] = DataLoader(test_data,
                                                    batch_size=BATCH_SIZE,
                                                    num_workers=4)

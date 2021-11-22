@@ -23,10 +23,10 @@ from src.visualization.visualize import show_grid
 import yaml
 from utils import skip_run, get_num_gpus
 
-with skip_run('run', 'vae_training') as check, check():
+with skip_run('skip', 'vae_training') as check, check():
     # Load the configuration
     cfg = yaml.load(open('configs/vae.yaml'), Loader=yaml.SafeLoader)
-    cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/VAE'
+    cfg['logs_path'] = cfg['logs_path'] + str(date.today())
 
     # Random seed
     gpus = get_num_gpus()
@@ -53,7 +53,7 @@ with skip_run('run', 'vae_training') as check, check():
     model = VAE(cfg, net, data_loader)
     # Early stopping
     early_stop_callback = EarlyStopping(monitor="val_loss",
-                                        patience=5,
+                                        patience=20,
                                         verbose=False,
                                         mode="min")
     trainer = pl.Trainer(gpus=gpus,
@@ -75,7 +75,7 @@ with skip_run('skip', 'vae_inference') as check, check():
     cfg['encoder_config'] = layer_config.layers_encoder_256_128
     cfg['decoder_config'] = layer_config.layers_decoder_256_128
     net = CNNAutoEncoder(cfg)
-    check_point_path = 'logs/2021-11-09/VAE/vae-v2.ckpt'
+    check_point_path = 'logs/2021-11-10/vae.ckpt'
     model = VAE.load_from_checkpoint(check_point_path,
                                      hparams=cfg,
                                      net=net,
@@ -86,13 +86,14 @@ with skip_run('skip', 'vae_inference') as check, check():
 
     # Data loader
     data_loader = vae_dataset.train_val_test_iterator(cfg)
-    for data in data_loader['test_data_loader']:
-        x_out, mu, log_var = model(data.to("cuda"))
-        imgs = make_grid(x_out)
-        show_grid(imgs)
-        imgs = make_grid(data)
-        show_grid(imgs)
-        plt.show()
+    for i, data in enumerate(data_loader['test_data_loader']):
+        if i == 40:
+            x_out, mu, log_var = model(data.to("cuda"))
+            imgs = make_grid(x_out)
+            show_grid(imgs)
+            imgs = make_grid(data)
+            show_grid(imgs)
+            plt.show()
 
 with skip_run('skip', 'behavior_cloning') as check, check():
     # Load the configuration

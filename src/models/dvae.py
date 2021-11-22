@@ -5,9 +5,9 @@ import pytorch_lightning as pl
 from torch.optim import Adam
 
 
-class VAE(pl.LightningModule):
+class DynamicVAE(pl.LightningModule):
     def __init__(self, hparams, net, data_loader):
-        super(VAE, self).__init__()
+        super(DynamicVAE, self).__init__()
         self.cfg = hparams
         self.net = net
         self.data_loader = data_loader

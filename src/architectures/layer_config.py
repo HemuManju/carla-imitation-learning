@@ -797,7 +797,7 @@ layers_decoder_256_128 = [
         "momentum": bnm
     },
     {
-        "type": "Sigmoid"
+        "type": "ReLU"
     },
 ]
 
