@@ -3,8 +3,9 @@ import torch
 import numpy as np
 import torch.nn as nn
 import pytorch_lightning as pl
-from sklearn.metrics import confusion_matrix, plot_confusion_matrix, ConfusionMatrixDisplay, accuracy_score
+from sklearn.metrics import confusion_matrix, ConfusionMatrixDisplay, accuracy_score
 
+from datetime import datetime
 from pytorch_msssim import ms_ssim
 
 from torch.optim import Adam
@@ -16,28 +17,29 @@ from matplotlib import pyplot as plt
 
 def lossCriterion(obj, inp, out):
     ### calculate loss
-    # l1 = nn.functional.mse_loss(inp[0], out[0][0])                        # image reconstruction MSE
-    # l1 = 1 - ms_ssim(inp[0], out[0][0], data_range=1, size_average=True)  # image reconstruction
-    # l1 = 1 - ms_ssim(inp[0], out[0][2], data_range=1, size_average=True)  # semantic segmentation
-    # l2 = nn.functional.cross_entropy(inp[1], out[1][:,0])                 # trafficlight status detection
-    l3 = nn.functional.cross_entropy(inp[2], out[1][:,1])                 # Autopilot Action
-    l4 = nn.functional.cross_entropy(inp[3], out[1][:,2])                 # dist to front car
+    # l1 = nn.functional.mse_loss(inp[0], out[0][0])                              # image reconstruction MSE
+    # l1 = 1 - ms_ssim(inp[0], out[0][0], data_range=1, size_average=True)        # image reconstruction
+    # l1 = 1 - ms_ssim(inp[0], out[0][2], data_range=1, size_average=True)        # semantic segmentation
+    # l2 = nn.functional.cross_entropy(inp[1], out[1][:,0])                       # trafficlight status detection
+    l3 = nn.functional.cross_entropy(inp[2], out[1][:,1])                       # Autopilot Action
+    # l4 = nn.functional.cross_entropy(inp[3], out[1][:,2], weight=obj.cb_weight) # dist to front car
    
     ### plot loss
-    # print('loss:',l1.item(), l2.item(), l3.item())
+    # print('loss:',l1.item(), l2.item(), l3.item(), l4.item())
     # obj.log('image_recons_loss', l1.item(), on_step=False, on_epoch=True)
     # obj.log('traffic_loss', l2.item(), on_step=False, on_epoch=True)
     # print('loss', l3.item(), l4.item())
     obj.log('autopilot_action_loss', l3.item(), on_step=False, on_epoch=True)
-    obj.log('frontcar_dist_loss', l4.item(), on_step=False, on_epoch=True)
+    # obj.log('frontcar_dist_loss', l4.item(), on_step=False, on_epoch=True)
 
     ### weighted summation
     # loss = 2*l1 + l2 + l3
     # loss = l2 + 3*l3
     # loss = 2*l1 + l3
-    # loss = l3
+    loss = l3
     # loss = l1
-    loss = l3 + l4
+    # loss = l3 + l4
+    # loss = 3*l1 + l4
     return loss
 
 
@@ -49,12 +51,20 @@ class Imitation(pl.LightningModule):
         self.net = net
         self.data_loader = data_loader
         self.criterion = lossCriterion
-        # self.criterion = nn.CrossEntropyLoss()
-        self.log('info', 'this is the info',on_step=False, on_epoch=True)
+        self.before_train()
 
     def forward(self, x):
         output = self.net.forward(x)
         return output
+    
+    def before_train(self):
+        cur_time = str(datetime.now())
+        info = cur_time +': just image no dropout + original encoder+decoder (256) +NO action\n'
+        print(info)
+        with open(self.h_params.log_dir + 'info.txt', 'a') as f:
+            f.write(info)
+        class_weight = 1.0/np.array([45150, 21977, 17134, 181751])
+        self.cb_weight = torch.from_numpy(class_weight).type(torch.float32).to(torch.device('cuda:0'))
 
     def training_step(self, batch, batch_idx):
         x, y = batch
@@ -102,9 +112,9 @@ class Imitation(pl.LightningModule):
         self.net.eval()
         with torch.no_grad():
             net = self.net.to(torch.device('cuda:0'))
-            dataloader = self.data_loader['val_dataloader']
+            dataloader = self.data_loader['train_dataloader']
             # keys in the auxiliary model
-            keys = ['act', 'dist']
+            keys = ['act']
             # intialization
             pred_bt = dict.fromkeys(keys)
             labels_bt = dict.fromkeys(keys)

@@ -233,7 +233,23 @@ class CNNAuxNet(pl.LightningModule):
         ####################################
         #### 3. CNN without BN, with dropout, kernel_1 = 5,not 7 
         ####################################
-        # # self.encoder = nn.Sequential(
+        # self.encoder = nn.Sequential(
+        # nn.Conv2d(obs_size, 32, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(32, 32, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(32, 64, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(64, 64, kernel_size=3, stride=2), nn.Dropout(.2), nn.ReLU(),
+        # nn.Conv2d(64, 128, kernel_size=3, stride=2)
+        # )
+        # self.decoder = nn.Sequential(
+        #     nn.ConvTranspose2d(128, 64, kernel_size=3, stride=2, output_padding=0), nn.ReLU(),
+        #     nn.ConvTranspose2d(64, 64, kernel_size=3, stride=2, output_padding=1), nn.ReLU(), 
+        #     nn.ConvTranspose2d(64, 32, kernel_size=5, stride=3, output_padding=1), nn.ReLU(), 
+        #     nn.ConvTranspose2d(32, 32, kernel_size=5, stride=3, output_padding=1), nn.ReLU(), 
+        #     nn.ConvTranspose2d(32, obs_size, kernel_size=5, stride=3, output_padding=2),
+        #     nn.Sigmoid()
+        # )
+
+        # self.encoder = nn.Sequential(
         # nn.Conv2d(obs_size, 32, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
         # nn.Conv2d(32, 32, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
         # nn.Conv2d(32, 64, kernel_size=5, stride=3), nn.Dropout(.2), nn.ReLU(),
@@ -332,7 +348,7 @@ class CNNAuxNet(pl.LightningModule):
         ####################################
         sensor_len = 3
         auxtask_len = 4
-        self.autopilotAC = nn.Sequential(nn.Linear(2*128 +0 , 1*64), nn.ReLU(),
+        self.autopilotAC = nn.Sequential(nn.Linear(2*128 + 0 , 1*64), nn.ReLU(),
                         nn.Linear(1*64, 1*32), nn.ReLU(),
                         nn.Linear(1*32, n_actions))
 
@@ -340,7 +356,7 @@ class CNNAuxNet(pl.LightningModule):
         #                         nn.Linear(64, 32), nn.ReLU(),
         #                         nn.Linear(32, 3)) # red, green, none
 
-        # self.trafficlight_feed =  nn.Sequential(nn.Linear(3, 18), nn.LeakyReLU(),
+        # self.aux_feed =  nn.Sequential(nn.Linear(4, 18), nn.LeakyReLU(),
         #                                 nn.Linear(18, 18))
     
         # self.frontcar_dist = nn.Sequential(nn.Linear(2*128 + 0, 64), nn.ReLU(),
@@ -400,18 +416,19 @@ class CNNAuxNet(pl.LightningModule):
         ##########################################
         # traffic_out = self.trafficlight(latent)                  # with sensor data
         # traffic_out = self.trafficlight(hflat)                   # no sensor data
-        # traffic_feed = self.trafficlight_feed(traffic_out)       # scaling inermidiate MLP
+        # traffic_feed = self.aux_feed(traffic_out)       # scaling inermidiate MLP
 
         ##########################################
         ### Dist to front vehicle
         ##########################################
         # dist_out = self.frontcar_dist(hflat)
+        # aux_out = self.aux_feed(dist_out)
 
 
         ##########################################
         ### Autopilot Action
         ##########################################
-        aux_out = dist_out
+        # aux_out = dist_out
         # final_latent = torch.cat((latent, aux_out), dim=1)   # concatenate aux output + sensor data
         # final_latent = torch.cat((hflat, aux_out), dim=1)    # concatenate aux output  
         # final_latent = torch.cat((hflat, traffic_feed), dim=1)   # use aux scaling MLP

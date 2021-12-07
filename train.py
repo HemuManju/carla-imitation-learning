@@ -155,8 +155,9 @@ with skip_run('skip', 'aux') as check, check():
         ### using pretrained weights
         # ckpt_path='logs/2021-10-29/imitation.ckpt'  # image recons  
         # ckpt_path='logs/2021-11-02/imitation.ckpt'    # semseg
-        # net.loadWeights(ckpt_path=ckpt_path, selected_subnet=['encoder','decoder'])
-        # net.freezeLayers(selected_subnet=['encoder','decoder'])
+        ckpt_path='logs/2021-12-03/imitation.ckpt'    # semseg
+        net.loadWeights(ckpt_path=ckpt_path, selected_subnet=['encoder'])
+        net.freezeLayers(selected_subnet=['encoder'])
         
         # output = net(net.example_input_array)
         # print(output)  # verification
@@ -202,7 +203,7 @@ with skip_run('run', 'test') as check, check():
             hparams)
         model = Imitation(hparams, net, data_loader)
         model = model.load_from_checkpoint(
-            'logs/2021-11-15/imitation-v2.ckpt', hparams=hparams, net=net, data_loader=data_loader)
+            'logs/2021-12-03/imitation-v1.ckpt', hparams=hparams, net=net, data_loader=data_loader)
         model.calcAccuracy()
         # model.sampleOutput()
 

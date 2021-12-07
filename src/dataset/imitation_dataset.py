@@ -327,12 +327,14 @@ def frontcardist_to_discrete(y):
     
 
     ### class-balanced loss weight
-    unique, counts = np.unique(dist_ind, return_counts=True)
-    beta = 0.998     # CB loss (b=0 no weighing, b=1 means weighing by inverse frequency)
-    class_weight = (1.0-beta)/(1-np.power(beta, counts))
+    # unique, counts = np.unique(dist_ind, return_counts=True)
+    # beta = 0.99999#0.998     # CB loss (b=0 no weighing, b=1 means weighing by inverse frequency)
+    # class_weight = (1.0-beta)/(1.0-np.power(beta, counts))
+    # print(counts, 1.0/counts)
+    # print('class_weight',class_weight)
 
-    # class_weight = np.reciprocal(traindata_sum, where = traindata_sum > 0)
-    class_weight = torch.from_numpy(class_weight)
+    # # class_weight = np.reciprocal(traindata_sum, where = traindata_sum > 0)
+    # class_weight = torch.from_numpy(class_weight)
 
     return dist_ind
 
