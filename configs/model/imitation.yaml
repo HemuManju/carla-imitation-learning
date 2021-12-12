@@ -7,7 +7,7 @@ camera: ['camera']
 # Training parameters
 NUM_EPOCHS: 50
 BATCH_SIZE: 64
-NUM_WORKERS: 11
+NUM_WORKERS: 6
 LEARNING_RATE: 0.0001
 WEIGHT_DECAY: 1e-6 #1e-4
 DROP_OUT: 0.20

@@ -6,6 +6,8 @@ from src.dataset import vae_dataset, imitation_dataset
 
 from src.architectures.nets import CNNAutoEncoder, CNNAuxNet, ConvNet1, ConvNetRawSegment, CNNAuxNet
 
+from src.models.model_supervised import Model_Segmentation_Traffic_Light_Supervised
+
 from src.models.vae import VAE
 from src.models.imitation import Imitation
 
@@ -126,6 +128,45 @@ with skip_run('skip', 'behavior_cloning') as check, check():
                              callbacks=[checkpoint_callback])
         trainer.fit(model)
 
+with skip_run('run', 'aux-adv') as check, check():
+    # Load the parameters
+    hparams = compose(config_name="config", overrides=['model=imitation'])
+
+    camera_type = ['camera']#, 'camera_sFOV']
+    for camera in camera_type:
+        hparams['camera'] = camera
+
+        # Random seed
+        gpus = get_num_gpus()
+        torch.manual_seed(hparams.pytorch_seed)
+
+        # Checkpoint
+        checkpoint_callback = pl.callbacks.ModelCheckpoint(
+            monitor='val_loss',
+            dirpath=hparams.log_dir,
+            save_top_k=1,
+            filename='imitation',
+            mode='min')
+        logger = pl.loggers.TensorBoardLogger(hparams.log_dir,
+                                              name='imitation')
+
+        
+        # output = net(net.example_input_array)
+        # for it in output:
+        #     print(it.shape)
+
+        # print(output)  # verification
+        data_loader = imitation_dataset.sequential_train_val_test_iterator(hparams)
+        # All this magic number should match the one used when training supervised...
+        net = Model_Segmentation_Traffic_Light_Supervised(1, 1, 1024, 6, 4, True, pretrained=True)
+
+        model = Imitation(hparams, net, data_loader)
+        trainer = pl.Trainer(gpus=gpus,
+                             max_epochs=hparams.NUM_EPOCHS,
+                             logger=logger,
+                             callbacks=[checkpoint_callback])
+        trainer.fit(model)
+
 
 with skip_run('skip', 'aux') as check, check():
     # Load the parameters
@@ -171,7 +212,7 @@ with skip_run('skip', 'aux') as check, check():
         trainer.fit(model)
 
 
-with skip_run('run', 'test') as check, check():
+with skip_run('skip', 'test') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
 

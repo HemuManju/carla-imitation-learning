@@ -16,30 +16,33 @@ from matplotlib import pyplot as plt
 
 
 def lossCriterion(obj, inp, out):
+    l_act, l_sem, l_tr, l_tr_dist, l_car_dist = 0, 0, 0, 0, 0 
+
+    # model output: out_seg, tl_state_output, dist_to_tl_output, dist_to_frontcar
     ### calculate loss
+    # regression
     # l1 = nn.functional.mse_loss(inp[0], out[0][0])                              # image reconstruction MSE
     # l1 = 1 - ms_ssim(inp[0], out[0][0], data_range=1, size_average=True)        # image reconstruction
     # l1 = 1 - ms_ssim(inp[0], out[0][2], data_range=1, size_average=True)        # semantic segmentation
-    # l2 = nn.functional.cross_entropy(inp[1], out[1][:,0])                       # trafficlight status detection
-    l3 = nn.functional.cross_entropy(inp[2], out[1][:,1])                       # Autopilot Action
-    # l4 = nn.functional.cross_entropy(inp[3], out[1][:,2], weight=obj.cb_weight) # dist to front car
+    
+    # classification
+    # l_act = nn.functional.cross_entropy(inp[2], out[1][:,1])                      # Autopilot Action
+    l_sem = nn.functional.cross_entropy(inp[0], out[0][2])                        # pixel-wise semantic segmentation
+    l_tr = nn.functional.cross_entropy(inp[1], out[1][:,0])                       # trafficlight status detection
+    l_tr_dist = nn.functional.cross_entropy(inp[2], out[1][:,2])                  # dist to traffic light
+    l_car_dist = nn.functional.cross_entropy(inp[3], out[1][:,3])                 # dist to front car
    
     ### plot loss
-    # print('loss:',l1.item(), l2.item(), l3.item(), l4.item())
-    # obj.log('image_recons_loss', l1.item(), on_step=False, on_epoch=True)
-    # obj.log('traffic_loss', l2.item(), on_step=False, on_epoch=True)
-    # print('loss', l3.item(), l4.item())
-    obj.log('autopilot_action_loss', l3.item(), on_step=False, on_epoch=True)
-    # obj.log('frontcar_dist_loss', l4.item(), on_step=False, on_epoch=True)
+    # print('loss:', l_sem.item(), l_tr.item(), l_tr_dist.item(), l_car_dist.item())
+    # obj.log('autopilot_action_loss', l_act.item(), on_step=False, on_epoch=True)
+    obj.log('image_loss', l_sem.item(), on_step=False, on_epoch=True)
+    obj.log('traffic_loss', l_tr.item(), on_step=False, on_epoch=True)
+    obj.log('traffic_dist_loss', l_tr_dist.item(), on_step=False, on_epoch=True)
+    obj.log('frontcar_dist_loss', l_car_dist.item(), on_step=False, on_epoch=True)
+
 
     ### weighted summation
-    # loss = 2*l1 + l2 + l3
-    # loss = l2 + 3*l3
-    # loss = 2*l1 + l3
-    loss = l3
-    # loss = l1
-    # loss = l3 + l4
-    # loss = 3*l1 + l4
+    loss = l_sem + l_tr + l_tr_dist + l_car_dist
     return loss
 
 
@@ -59,7 +62,7 @@ class Imitation(pl.LightningModule):
     
     def before_train(self):
         cur_time = str(datetime.now())
-        info = cur_time +': just image no dropout + original encoder+decoder (256) +NO action\n'
+        info = cur_time +': just all aux encoder + single img in single out + PRETRAINED RESNET+ NO action\n'
         print(info)
         with open(self.h_params.log_dir + 'info.txt', 'a') as f:
             f.write(info)
