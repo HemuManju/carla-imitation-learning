@@ -24,25 +24,28 @@ def lossCriterion(obj, inp, out):
     # l1 = nn.functional.mse_loss(inp[0], out[0][0])                              # image reconstruction MSE
     # l1 = 1 - ms_ssim(inp[0], out[0][0], data_range=1, size_average=True)        # image reconstruction
     # l1 = 1 - ms_ssim(inp[0], out[0][2], data_range=1, size_average=True)        # semantic segmentation
+
+
+    # l1 = 1 - ms_ssim(inp[0], out[0][0], data_range=1, size_average=True)        # image reconstruction
     
     # classification
-    # l_act = nn.functional.cross_entropy(inp[2], out[1][:,1])                      # Autopilot Action
+    # l_act = nn.functional.cross_entropy(inp[4], out[1][:,1])                      # Autopilot Action
     l_sem = nn.functional.cross_entropy(inp[0], out[0][2])                        # pixel-wise semantic segmentation
-    l_tr = nn.functional.cross_entropy(inp[1], out[1][:,0])                       # trafficlight status detection
-    l_tr_dist = nn.functional.cross_entropy(inp[2], out[1][:,2])                  # dist to traffic light
-    l_car_dist = nn.functional.cross_entropy(inp[3], out[1][:,3])                 # dist to front car
+    # l_tr = nn.functional.cross_entropy(inp[1], out[1][:,0])                       # trafficlight status detection
+    # l_tr_dist = nn.functional.cross_entropy(inp[2], out[1][:,2])                  # dist to traffic light
+    # l_car_dist = nn.functional.cross_entropy(inp[3], out[1][:,3])                 # dist to front car
    
     ### plot loss
     # print('loss:', l_sem.item(), l_tr.item(), l_tr_dist.item(), l_car_dist.item())
-    # obj.log('autopilot_action_loss', l_act.item(), on_step=False, on_epoch=True)
-    obj.log('image_loss', l_sem.item(), on_step=False, on_epoch=True)
-    obj.log('traffic_loss', l_tr.item(), on_step=False, on_epoch=True)
-    obj.log('traffic_dist_loss', l_tr_dist.item(), on_step=False, on_epoch=True)
-    obj.log('frontcar_dist_loss', l_car_dist.item(), on_step=False, on_epoch=True)
+    obj.log('autopilot_action_loss', l_act.item(), on_step=False, on_epoch=True)
+    # obj.log('image_loss', l_sem.item(), on_step=False, on_epoch=True)
+    # obj.log('traffic_loss', l_tr.item(), on_step=False, on_epoch=True)
+    # obj.log('traffic_dist_loss', l_tr_dist.item(), on_step=False, on_epoch=True)
+    # obj.log('frontcar_dist_loss', l_car_dist.item(), on_step=False, on_epoch=True)
 
 
     ### weighted summation
-    loss = l_sem + l_tr + l_tr_dist + l_car_dist
+    loss = l_sem + l_tr + l_tr_dist + l_car_dist + l_act
     return loss
 
 
@@ -111,13 +114,15 @@ class Imitation(pl.LightningModule):
         return out
 
 
-    def calcAccuracy(self):
+    def calcAccuracy(self, dataset_type='val'):
         self.net.eval()
         with torch.no_grad():
             net = self.net.to(torch.device('cuda:0'))
-            dataloader = self.data_loader['train_dataloader']
-            # keys in the auxiliary model
-            keys = ['act']
+            dataloader = self.data_loader[dataset_type+'_dataloader']
+            ### keys in the auxiliary model
+            # keys = ['act', 'dist_car', 'traffic', 'dist_tr']
+            # keys = ['act']
+            keys = ['semseg']
             # intialization
             pred_bt = dict.fromkeys(keys)
             labels_bt = dict.fromkeys(keys)
@@ -126,20 +131,33 @@ class Imitation(pl.LightningModule):
 
             for i, batch in enumerate(dataloader):
                 x, y = batch
+                # for it in x:
+                #     it = it.to(torch.device('cuda:0'))
                 x[0] = x[0].to(torch.device('cuda:0'))
+                x[1] = x[1].to(torch.device('cuda:0'))
 
                 # Pass through the network
                 output = net(x)
-                x = 0  # to match lossCriterion format
-                target = [x,y]
+                target = [x,y]      # to match the loss criterion format
 
-                ### calculate accuracy
+                ### calculate accuracy  (fix the indexes here-look at loss function)
                 if 'act' in keys:
-                    pred_bt['act'] = torch.argmax(output[2],dim=1).cpu()
+                    pred_bt['act'] = torch.argmax(output[4],dim=1).cpu()
                     labels_bt['act'] = target[1][:,1].cpu()
-                if 'dist' in keys:
-                    pred_bt['dist'] = torch.argmax(output[3],dim=1).cpu()
-                    labels_bt['dist'] = target[1][:,2].cpu()
+                if 'dist_car' in keys:
+                    pred_bt['dist_car'] = torch.argmax(output[3],dim=1).cpu()
+                    labels_bt['dist_car'] = target[1][:,3].cpu()
+                if 'traffic' in keys:
+                    pred_bt['traffic'] = torch.argmax(output[1],dim=1).cpu()
+                    labels_bt['traffic'] = target[1][:,0].cpu()
+                if 'dist_tr' in keys:
+                    pred_bt['dist_tr'] = torch.argmax(output[2],dim=1).cpu()
+                    labels_bt['dist_tr'] = target[1][:,2].cpu()
+                if 'semseg' in keys:
+                    pred_bt['semseg'] = torch.argmax(output[0],dim=1).cpu()
+                    labels_bt['semseg'] = target[0][2].cpu()
+                
+                
 
 
                 print('\nbatch {}/{} acc - '.format(i,len(dataloader)), end='')
@@ -167,35 +185,49 @@ class Imitation(pl.LightningModule):
                 plt.show()
 
 
-    def sampleOutput(self):
+    def sampleOutput(self, dataset_type='val'):
         self.net.eval()
         with torch.no_grad():
             net = self.net.to(torch.device('cuda:0'))
-            dataloader = self.data_loader['val_dataloader']
-            # object_methods = [method_name for method_name in dir(dataloader)
-            #       if callable(getattr(dataloader, method_name))]
-            # print(object_methods)
-
-
-            # data = dataloader.y
-            # print(data.shape)
-
-            # plt.hist(data[:,2], density=True, bins=30)  # density=False would make counts
-            # plt.ylabel('Probability')
-            # plt.xlabel('Data');
+            dataloader = self.data_loader[dataset_type + '_dataloader']
+            plotSemseg = dataloader.dataset.plotSemseg      # for plotting the semseg
 
             f, axarr = plt.subplots(1,2)
             for i, batch in enumerate(dataloader):
                 x, y = batch
                 x[0] = x[0].to(torch.device('cuda:0'))
+                x[1] = x[1].to(torch.device('cuda:0'))
                 output = net(x)
                 ind = 0
-                b_ind = random.randint(0, self.h_params['BATCH_SIZE']-1)
-                array1 = x[0][b_ind][ind].cpu().detach().numpy()
-                array2 = output[0][b_ind][ind].cpu().detach().numpy()
+                b_ind = random.randint(0, self.h_params['BATCH_SIZE']-1)        # index in current batch 
 
-                axarr[0].imshow(np.uint8(array1*255), cmap='gray',)
-                axarr[1].imshow(np.uint8(array2*255), cmap='gray',)
+                ### plot image (multiple images mode)
+                # array1 = x[0][b_ind][ind].cpu().detach().numpy()
+                # array2 = output[0][b_ind][ind].cpu().detach().numpy()
+
+                ### plot single image
+                array1 = x[0][b_ind][:].cpu().detach().numpy()
+                array1 = np.moveaxis(array1, 0, 2)
+                array2 = output[0][b_ind][:].cpu().detach().numpy()
+                array2 = np.moveaxis(array2, 0, 2)
+                
+                #################################
+                # ### semseg model
+                # array2 = torch.argmax(output[0][b_ind][:],dim=0).cpu().detach().numpy()
+                # array2 = plotSemseg(array2)
+
+                ## semseg ground truth
+                # array2 = x[2][b_ind][:].cpu().detach().numpy()
+                # array2 = plotSemseg(array2)
+
+                ###################################
+                ###################################
+                ### Plot the image
+                axarr[0].imshow(np.uint8(array1),)
+                axarr[1].imshow(np.uint8(array2),)
+
+                # axarr[0].imshow(np.uint8(array1*255), cmap='gray',)
+                # axarr[1].imshow(np.uint8(array2*255), cmap='gray',)
                 plt.show(block=False)
                 input("Press Enter to continue...")
-            
+    

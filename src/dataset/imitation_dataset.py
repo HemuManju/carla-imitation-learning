@@ -23,84 +23,30 @@ from torch.utils.data import DataLoader
 from .utils import nested_dict
 
 
-class TorchDataset(Dataset):
-    """All subject dataset class.
-
-    Parameters
-    ----------
-    split_ids : list
-        ids list of training or validation or traning data.
-
-    Attributes
-    ----------
-    split_ids
-
-    """
-    def __init__(self, data):
-        super(TorchDataset, self).__init__()
-        self.x = data['x']
-        self.y = data['y']
-
-        # This step normalizes image between 0 and 1
-        self.transform = transforms.ToTensor()
-
-    def __getitem__(self, index):
-        # Read only specific data and convert to torch tensors
-        x = self.transform(self.x[index]).type(torch.float32)
-        y = torch.from_numpy(self.y[index]).type(torch.long)
-        return x, y.squeeze(-1)
-
-    def __len__(self):
-        return self.x.shape[0]
-
-
-class LargeTorchDataset(Dataset):
-    def __init__(self, hparams, dataset_type='train'):
-        # Read path
-        log = hparams['train_logs'][0]
-        self.read_path = hparams[
-            'data_dir'] + 'processed' + '/' + log + '/' + dataset_type + '/' + hparams[
-                'camera']
-        self.image_files = os.listdir(self.read_path)
-
-        # Get corresponding targets (autopilot actions)
-        self.file_idx = [
-            int(name.split('.')[0]) - 1 for name in self.image_files
-        ]  # file name starts from 1
-        autopilot_actions = np.genfromtxt(hparams['data_dir'] + 'raw' + '/' +
-                                          log + '/state.csv',
-                                          delimiter=',',
-                                          usecols=(4, 5, 6, 7))
-        action_ind = continous_to_discreet(autopilot_actions)
-        actions = np.stack(action_ind, axis=-1)
-        self.y = actions[self.file_idx, None]
-
-        # This step normalizes image between 0 and 1
-        self.transform = transforms.ToTensor()
-
-    def _load_file(self, file_name):
-        image = imread(self.read_path + '/' + file_name, as_gray=True)
-        return image
-
-    def __getitem__(self, index):
-        # Load
-        x = self._load_file(self.image_files[index])
-
-        # Transform
-        x = self.transform(x).type(torch.float32)
-        y = torch.from_numpy(self.y[index]).type(torch.long)
-        return x, y.squeeze(-1)
-
-    def __len__(self):
-        return len(self.image_files)
-
 class SequentialTorchDataset(Dataset):
+    """ A Generalized data loader that handles:
+        - semseg and image lodaing
+        - sensor data
+        - single or a sequence of images
+        - frame skipping
+
+    Args:
+        Dataset ([hparams]): the hyperparamters
+        dataset_type ([string]): train, test, or val 
+
+    Returns:
+        [tuple of (list) of torch tensors]: input (may contain output) consisting of images,
+             sensor data, and semantic labels
+        [torch tensor]: output labels
+    """
     def __init__(self, hparams, dataset_type='train'):
         self.hparams = hparams
+        self.image_files = dict.fromkeys(self.hparams['modalities'])
+        self.semantic = 'semantic_label' in self.image_files.keys()
+
+
         self.read_path = hparams['data_dir']+ dataset_type + '/'
         print(self.read_path)
-        self.image_files = dict.fromkeys(['camera', 'semantic_label']) 
-        self.semantic = 'semantic_label' in self.image_files.keys()
 
         for modal in self.image_files.keys():
             self.image_files[modal] = sorted(glob(self.read_path +'*/'+ modal + '/*'))
@@ -110,17 +56,19 @@ class SequentialTorchDataset(Dataset):
 
         assert len(self.file_idx) == self.file_idx[-1]+1 == len(self.image_files['camera'])
 
-        # self._combineSensorDataframes()
+        # To combbine the data fromes if havent already done so
+        if not os.path.exists(self.read_path + 'sensor_all.json'):
+            self._combineSensorDataframes()
         self._load_sensor()
 
     def _load_sensor(self):
-        '''Load the data from a single json file
+        '''Load the sensor data and labels from a single json file
         '''
         sensor_df = pd.read_json(self.read_path + 'sensor_all.json', orient='index')
         # orient_vals = np.array(sensor_df['orientation'].tolist())
 
         action_ind = continous_to_discreet(np.array(sensor_df['control'].tolist()))                # autopilot action
-        # self._visualize(action_ind)
+        # self.visualize(action_ind)
 
         redlight_status = np.array(sensor_df['traffic_light'].tolist())                            # redlight status
         redlight_dist = distance_to_discrete(np.array(sensor_df['traffic_light_dist'].tolist()))   # dist to traffic light
@@ -136,19 +84,40 @@ class SequentialTorchDataset(Dataset):
         self.y = target[self.file_idx, None]
         self.sensor_data = sensor[self.file_idx, None]
 
-    def _visualize(self, values):
+    def visualize(self, values, discrete=True):
+        '''Visualize the data
+        '''
         print('Visualizing data - len=', values.shape)
         print('range:', np.min(values), ', ', np.max(values))
-        # pass
-        unique, counts = np.unique(values, return_counts=True)
-        vals = dict(zip(unique, counts))
-        print(vals)
-        # counts = dict((i, values.count(i)) for i in values)
+        
+        if discrete:
+            unique, counts = np.unique(values, return_counts=True)
+            vals = dict(zip(unique, counts))
+            print(vals)
         
         plt.hist(values, density=False, bins='auto', histtype='step')  # density=False would make counts
         plt.ylabel('Values')
         plt.xlabel('Data')
         plt.show()
+
+    def plotSemseg(self, image_array):
+        '''Plots the RGB image from the semantic label for visualization
+        '''
+        # categories: moving obstacles, traffic lights, road markers, road, sidewalk and background
+        segclass_colors = {
+            0: [70, 70, 70],         # 0: Building 1, Fence 2, Other 3, poles 5, vegetation 9, walls 11
+            1: [0, 0, 142],        # 1: pedestrian 4, vehicles 10
+            2: [220, 220, 0],      # 2: traffic signs 12, 
+            3: [153, 153, 153],    # 3: roadlines 6,
+            4: [128,  64, 128],    # 4: road 7
+            5: [244, 35, 232],     # 5: sidewalk 8
+        }
+
+        semseg_rgb = np.zeros((image_array.shape[-2], image_array.shape[-1], 3))
+        for _, (clss, val) in enumerate(segclass_colors.items()):
+            semseg_rgb[np.where(image_array==clss)] = val
+
+        return semseg_rgb  # 3 * height * width
 
     def _combineSensorDataframes(self):
         '''Combines sensor data from different logs into a single json file
@@ -162,7 +131,7 @@ class SequentialTorchDataset(Dataset):
         finaldf.to_json(self.read_path + 'sensor_all.json', orient='index')  
 
     def _processSemseg(self, image_array):
-        '''Returns the correct semantic label from image
+        '''Returns the correct semantic label from image and resizes it
         '''
         # categories: moving obstacles, traffic lights, road markers, road, sidewalk and background
         segclass = {
@@ -174,48 +143,47 @@ class SequentialTorchDataset(Dataset):
             5: [8],                    # 5: sidewalk 8
         }
 
-        # TODO: make this more efficient
-        # resize the image
-        # img = torch.from_numpy(image_array)
-        # img = self.transform_sem(img)
-        # img = img.numpy()
-        # temp = img[0,:,:]
+        assert len(image_array.shape) == 3
+        image_array = image_array[0,:,:]                                            # classes encocded in red channel
+        resized_image_array = cv2.resize(image_array, (128,74), cv2.INTER_NEAREST)  # Note: axis are flipped in cv
 
-        image_array = image_array[0,:,:]                                    # classes encocded in red channel
-        image_array = cv2.resize(image_array, (128,74), cv2.INTER_NEAREST)  # Note: axis are flipped in cv
-
-        semseg_target = np.zeros_like(image_array)
-        for clss, val in enumerate(segclass):
-            mask = np.isin(image_array, val)
+        semseg_target = np.zeros_like(resized_image_array)
+        for _, (clss, val) in enumerate(segclass.items()):
+            mask = np.isin(resized_image_array, val)
             semseg_target[np.where(mask)] = clss
         
         return semseg_target  # num_images * height * width
 
     def _load_file(self, index, modality='camera', mode='single'):
+        ''' loads an image file and processes it
+        '''
 
-        if mode =='single':
+        if mode == 'single':
             files = self.image_files[modality][index-1:index] 
             images = imread(files[0])                         # single image
-        elif mode=='multiple':
+        elif mode == 'multiple':
             files = self.image_files[modality][index - self.hparams['frame_skip']:index]            # no frame skipping
             images = imread_collection(files).concatenate()   # stack of images
-        elif mode=='multiple_frameskip':
+        elif mode == 'multiple_frameskip':
             files = self.image_files[modality][index - 3*self.hparams['frame_skip']:index:3]        # Frame skipping (3)
             images = imread_collection(files).concatenate()
 
-        images = np.moveaxis(images, -1,-3)         # need [ch,height,width] or [num_imgs,ch,height,width]
-        images = images[...,120:,:]                 # if crop_sky
+        images = np.moveaxis(images, -1,-3)                 # need [ch,height,width] or [num_imgs,ch,height,width]
+        if self.hparams['crop_sky']:
+            images = images[...,120:,:]                     # if crop_sky
 
-        if modality =='camera':                               
-            # TODO: very costly, faster to do this using the the same image loader
-            # images = np.dot(images[..., :], [0.299, 0.587, 0.114]) / 255.0    # convert to grayscale
+
+        if modality =='camera':
+            images = images/255.0                           # normalize 
+            if self.hparams['gray_scale']:                  # convert to grayscale                   
+                # TODO: very costly, faster to do this using the the same image loader
+                images = np.dot(images[..., :], [0.299, 0.587, 0.114])
             if mode == 'single' and len(images.shape)==2:
-                pass
-                # images = np.expand_dims(images, axis=0)   # Only if grayscale and single
+                images = np.expand_dims(images, axis=0)   # Only if grayscale and single
             pass
         
         elif modality =='semantic_label':
-            if mode is 'single':
+            if mode =='single':
                 images = self._processSemseg(images)                
             else:
                 img_list = []
@@ -223,21 +191,22 @@ class SequentialTorchDataset(Dataset):
                     img_list.append(self._processSemseg(images[i, ...]))
                 images = np.array(img_list)
 
-        images = np.reshape(images, (-1, images.shape[-2], images.shape[-1]))  # [num_imgs*ch, height, width]
+        # if need [num_imgs*ch, height, width]
+        images = np.reshape(images, (-1, images.shape[-2], images.shape[-1]))
         
         return images
 
     def __getitem__(self, index):
         if(index < 12): # to handle frame skipping
             index = index+12
-        
-        x_sem = None
+    
         # Load the image
-        x = self._load_file(index, mode='single')
+        x = self._load_file(index, mode=self.hparams['loading_mode'])
         x = torch.from_numpy(x).type(torch.float32)
 
+        x_sem = 0
         if self.semantic: 
-            x_sem = self._load_file(index, modality='semantic_label', mode='single')
+            x_sem = self._load_file(index, modality='semantic_label', mode=self.hparams['loading_mode'])
             x_sem = torch.from_numpy(x_sem).type(torch.long).squeeze(0)
 
         y = torch.from_numpy(self.y[index]).type(torch.long).squeeze(0)
@@ -250,106 +219,33 @@ class SequentialTorchDataset(Dataset):
         return len(self.image_files['camera']) - self.hparams['frame_skip']
 
 
-def train_val_test_iterator(hparams, data_split_type=None):
-    """A function to get train, validation, and test data.
-
-    Parameters
-    ----------
-    hparams : yaml
-        The hparamsuration file.
-    leave_out : bool
-        Whether to leave out some subjects training and use them in testing
-
-    Returns
-    -------
-    dict
-        A dict containing the train and test data.
-
-    """
-    # Parameters
-    BATCH_SIZE = hparams['BATCH_SIZE']
-
-    # Get training, validation, and testing data
-    get_data = {
-        'pooled_data': get_pooled_data,
-        'leave_one_out_data': get_leave_out_data
-    }
-    data = get_data[data_split_type](hparams)
-
-    # Create train, validation, test datasets and save them in a dictionary
+def sequential_train_val_test_iterator(hparams, modes=['train', 'val', 'test']):
+    '''Create train, validation, test datasets
+    '''
     data_iterator = {}
-    train_data = TorchDataset(data['train'])
-    data_iterator['train_dataloader'] = DataLoader(train_data,
-                                                   batch_size=BATCH_SIZE,
-                                                   shuffle=True)
-
-    valid_data = TorchDataset(data['valid'])
-    data_iterator['val_dataloader'] = DataLoader(valid_data,
-                                                 batch_size=BATCH_SIZE)
-
-    test_data = TorchDataset(data['test'])
-    data_iterator['test_dataloader'] = DataLoader(test_data,
-                                                  batch_size=BATCH_SIZE)
-
-    return data_iterator
-
-
-def large_train_val_test_iterator(hparams):
-    # Parameters
-    BATCH_SIZE = hparams['BATCH_SIZE']
-
-    # Create train, validation, test datasets
-    data_iterator = {}
-    train_data = LargeTorchDataset(hparams, dataset_type='train')
-    data_iterator['train_dataloader'] = DataLoader(train_data,
-                                                   batch_size=BATCH_SIZE,
-                                                   shuffle=True)
-
-    valid_data = LargeTorchDataset(hparams, dataset_type='val')
-    data_iterator['val_dataloader'] = DataLoader(valid_data,
-                                                 batch_size=BATCH_SIZE)
-
-    test_data = LargeTorchDataset(hparams, dataset_type='test')
-    data_iterator['test_dataloader'] = DataLoader(test_data,
-                                                  batch_size=BATCH_SIZE)
-
-    return data_iterator
-
-
-def sequential_train_val_test_iterator(hparams):
-    # Parameters
-    BATCH_SIZE = hparams['BATCH_SIZE']
-    NUM_WORKERS = hparams['NUM_WORKERS']
-
-    # Create train, validation, test datasets
-    data_iterator = {}
-    train_data = SequentialTorchDataset(hparams, dataset_type='train')
-    data_iterator['train_dataloader'] = DataLoader(train_data,
-                                                   batch_size=BATCH_SIZE,
-                                                   shuffle=False, num_workers=NUM_WORKERS
-                                                   )
-
-    valid_data = SequentialTorchDataset(hparams, dataset_type='val')
-    data_iterator['val_dataloader'] = DataLoader(valid_data,
-                                                 batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
-
-    test_data = SequentialTorchDataset(hparams, dataset_type='test')
-    data_iterator['test_dataloader'] = DataLoader(test_data,
-                                                  batch_size=BATCH_SIZE, num_workers=NUM_WORKERS)
-
+    for mode in modes:
+        data = SequentialTorchDataset(hparams, dataset_type=mode)
+        data_iterator[mode+'_dataloader'] = DataLoader(data,
+                                                       batch_size=hparams['BATCH_SIZE'],
+                                                       shuffle=False, num_workers=hparams['NUM_WORKERS']
+                                                       )
     return data_iterator
 
 
 def continous_to_discreet(y):
+    '''Discretize the action data
+    '''
     steer = y[:, 0].copy()
     throttle = y[:, 1].copy()
     brake = y[:, 2].copy()
     
     # Discretize
     temp = steer.copy()
-    steer[temp>0.001] = 2.0
-    steer[temp<-0.001] = 0.0
-    steer[~np.logical_or(temp>0.001, temp<-0.001)] = 1.0
+    steer[temp>=0.1] = 4.0
+    steer[np.logical_and(temp>=0.001, temp<0.1)] = 3.0
+    steer[np.logical_and(temp<0.001, temp>-0.001)] = 2.0   # straight steering
+    steer[np.logical_and(temp<=-0.001, temp>-0.1)] = 1.0
+    steer[temp<=-0.1] = 0.0
 
     # Discretize throttle and brake
     acc = brake.copy()
@@ -358,13 +254,20 @@ def continous_to_discreet(y):
     acc[np.logical_and(throttle>0.25, throttle<=0.50)] = 2.0
     acc[throttle>0.75] = 3.0
 
+    cls_factor = max(len(np.unique(acc)), len(np.unique(steer)))
     actions = np.vstack((acc, steer)).T
-    # Convert actions to indices
-    action_ind = actions[:, 0] * len(np.unique(acc)) + actions[:, 1]
+
+    # Convert actions to indices: (# max*small_class + large_class)
+    if cls_factor == len(np.unique(acc)):
+        action_ind = actions[:, 0] + cls_factor * actions[:, 1]
+    else:
+        action_ind = cls_factor * actions[:, 0] + actions[:, 1]
 
     return action_ind
 
 def distance_to_discrete(y):
+    '''Discretize the distance
+    '''
     dist_ind = y.copy()
     dist_ind[y<=10.0] = 0
     dist_ind[np.logical_and(y>10, y<=15)] = 1
@@ -385,88 +288,3 @@ def clb_weight(y):
 
     # class_weight = np.reciprocal(traindata_sum, where = traindata_sum > 0)
     class_weight = torch.from_numpy(class_weight)
-
-def get_pooled_data(hparams):
-
-    read_paths = []
-    action_ind = []
-    camera = hparams['camera']
-    for log in hparams['train_logs']:
-        read_paths.append(hparams['data_dir'] + 'raw' + '/' + log + '/' +
-                          camera + '/*.jpeg')
-        autopilot_actions = np.genfromtxt(hparams['data_dir'] + 'raw' + '/' +
-                                          log + '/state.csv',
-                                          delimiter=',',
-                                          usecols=(4, 5, 6, 7))
-        action_ind.append(continous_to_discreet(autopilot_actions))
-
-    actions = np.stack(action_ind, axis=-1)
-    images = imread_collection(read_paths).concatenate()
-
-    # Convert to gray scale
-    images = np.dot(images[..., :], [0.299, 0.587, 0.114])
-
-    # Split train, validation, and testing
-    test_size = hparams['TEST_SIZE']
-    x = np.arange(actions.shape[0])
-    train_id, val_id, test_id = np.split(
-        x,
-        [int((1 - 2 * (test_size)) * len(x)),
-         int((1 - test_size) * len(x))])
-
-    # Data
-    data = nested_dict()
-    data['train']['x'] = images[train_id]
-    data['train']['y'] = actions[train_id]
-
-    data['valid']['x'] = images[val_id]
-    data['valid']['y'] = actions[val_id]
-
-    data['test']['x'] = images[test_id]
-    data['test']['y'] = actions[test_id]
-
-    return data
-
-
-def get_leave_out_data(hparams):
-    read_paths = []
-    camera = hparams['camera']
-    for log in hparams['train_logs']:
-        read_paths.append(hparams['data_dir'] + 'raw' + '/' + log + '/' +
-                          camera + '/*.jpeg')
-    images = imread_collection(read_paths).concatenate()
-
-    # Autopilot actions
-
-    # Split train and validation
-    val_size = hparams['VALID_SIZE']
-    ids = np.arange(len(images))
-    train_id, val_id, _, _ = train_test_split(ids,
-                                              ids * 0,
-                                              test_size=val_size,
-                                              shuffle=True)
-    train_data = images[train_id]
-    val_data = images[val_id]
-
-    # Testing data
-    read_paths = []
-    for log in hparams['test_logs']:
-        read_paths.append(hparams['data_dir'] + 'raw' + '/' + log + '/' +
-                          camera + '/*.jpeg')
-    test_data = imread_collection(read_paths).concatenate()
-
-    # Data
-    data = nested_dict()
-
-    # Data
-    data = nested_dict()
-    data['train']['x'] = train_data
-    data['train']['y'] = None
-
-    data['val']['x'] = val_data
-    data['val']['y'] = None
-
-    data['test']['x'] = test_data
-    data['test']['y'] = None
-
-    return train_data, val_data, test_data

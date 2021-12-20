@@ -7,5 +7,6 @@ defaults:
 
 # output paths for hydra logs
 log_dir: logs/${now:%Y-%m-%d}
-# data_dir: data/
+
+### data paramters
 data_dir: ../data/data6/
