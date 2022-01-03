@@ -38,20 +38,14 @@ def create_resnet_basic_block(
 class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
     def __init__(
         self,
-        nb_images_input,
-        nb_images_output,
-        hidden_size,
-        nb_class_segmentation,
-        nb_class_dist_to_tl,
-        crop_sky=False,
-        pretrained = False
+        hparams
     ):
         super().__init__()
-        if crop_sky:
+        if hparams['crop_sky']:
             self.size_state_RL = 6144
         else:
             self.size_state_RL = 8192
-        resnet18 = models.resnet18(pretrained=pretrained)
+        resnet18 = models.resnet18(pretrained=hparams['pretrained'])
         
         # See https://arxiv.org/abs/1606.02147v1 section 4: Information-preserving
         # dimensionality changes
@@ -80,21 +74,28 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
         assert resnet18.layer4[0].downsample[0].stride == (2, 2)
 
         self.example_input_array = [torch.randn((32, 3, 168, 288)), torch.randn((32, 3))]
-        self.semseg = True
-        self.traffic_status = False
-        self.traffic_dist = False
-        self.dist_car = False
-        self.action = False
+        self.semseg = hparams['semseg']
+        self.traffic_status = hparams['traffic_status']
+        self.traffic_dist = hparams['traffic_dist']
+        self.dist_car = hparams['dist_car']
+        self.action = hparams['action']
 
-        self.use_aux = True
-        self.use_sensor = True
+        self.use_aux =  hparams['use_aux']
+        self.use_sensor = hparams['use_sensor']
+
+        nb_images_input = hparams['nb_images_input']
+        nb_images_output = hparams['nb_images_output']
+        hidden_size = hparams['hidden_size']
+        nb_class_segmentation = hparams['nb_class_segmentation']
+
+
 
         ### to adapt to the number of input
-        if nb_images_input != 1:
-            new_conv1 = nn.Conv2d(
-                nb_images_input * 3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
-            )
-            resnet18.conv1 = new_conv1
+        # if nb_images_input != 1:
+        # new_conv1 = nn.Conv2d(
+        #     nb_images_input * 3, 64, kernel_size=(7, 7), stride=(2, 2), padding=(3, 3), bias=False
+        # )
+        # resnet18.conv1 = new_conv1
 
         self.encoder = nn.Sequential(
             *(list(resnet18.children())[:-2])
@@ -115,11 +116,9 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
 
         if self.dist_car:
             # classification on the distance to the front car
-            self.fc_dist_to_frontcar = nn.Sequential(
-                nn.Linear(self.size_state_RL, hidden_size),
-                nn.LeakyReLU(),
-                nn.Linear(hidden_size, 4)
-            )
+
+            self.fc1_dist_to_frontcar = nn.Linear(self.size_state_RL, hidden_size)
+            self.fc2_dist_to_frontcar = nn.Linear(hidden_size, 4)
 
 
         if self.semseg: 
@@ -130,7 +129,7 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
             self.up_sampled_block_2 = create_resnet_basic_block(24, 32, 256, 128)
             self.up_sampled_block_3 = create_resnet_basic_block(48, 64, 128, 64)
             self.up_sampled_block_4 = create_resnet_basic_block(74, 128, 64, 32)   # for semseg
-            # self.up_sampled_block_4 = create_resnet_basic_block(168, 288, 64, 32)    # for image reconstruction  
+            # self.up_sampled_block_4 = create_resnet_basic_block(188, 288, 64, 32)    # for image reconstruction  
 
             self.last_conv_segmentation = nn.Conv2d(
                 32,
@@ -148,7 +147,7 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
             )
 
         aux_len = int(self.use_aux) * (3 + 4 + 4)
-        sensor_len = int(self.use_sensor) * 3
+        sensor_len = int(self.use_sensor) * 2
 
         if self.action:
             num_actions = 20
@@ -167,28 +166,28 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
     def freezeLayers(self, selected_subnet=['encoder','decoder'], exclude_mode=False):
         '''Freezes selected subnet layers (or everything else if exclude_mode is true)
         '''
-        print('Frezing layers ...')
-        # for name, param in self.named_children():
-        #     print(name)
-
-        print('ending\n')
+        print('Frezing layers ...\nPutting modules in eval() mode:')
+        for name, param in self.named_children():
+            for subnet in selected_subnet: 
+                if not exclude_mode and subnet in name: 
+                    param.eval()
+                    print('\t',name)
+                elif exclude_mode and subnet not in name:
+                    param.eval()
+                    print('\t',name)
+        print('Finshed putting modules in eval mode\n')
 
         for name, param in self.named_parameters():
             for subnet in selected_subnet: 
                 if not exclude_mode and subnet in name: 
                     param.requires_grad = False
-                    # param.eval()
                 elif exclude_mode and subnet not in name:
                     param.requires_grad = False
-                    # print(name)
-                    # param.eval()
-                    # if 'running' in name:
-                    # if isinstance(param, torch.nn.modules.batchnorm._BatchNorm):
 
         print('\nFozen selected layers. Trainable weights are:')
         for name, param in self.named_parameters():
             if param.requires_grad:
-                print(name)
+                print('\t',name)
 
     def loadWeights(self, ckpt_path, selected_subnet=['encoder', 'decoder'], exclude_mode=False):
         '''loads selected subnet weights (or everything else if exclude_mode is true)
@@ -202,20 +201,20 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
                 if not exclude_mode and subnet in name:
                     tr_param = trained_params['net.' + name]
                     param.copy_(tr_param)
-                    print(subnet)
+                    print('\t',subnet)
                 elif exclude_mode and subnet not in name: 
                     tr_param = trained_params['net.' + name]
                     param.copy_(tr_param)
-                    print(name)
+                    print('\t',name)
 
         print('Loaded selected weights complete!***************************\n')
 
 
     def forward(self, x):
 
+        # with torch.no_grad():
         # Encoder first, resnet18 without last fc and abg pooling
         encoding = self.encoder(x[0])  # 512*4*4 or 512*4*3 (crop sky)
-        # print('encoding shape', encoding.shape)
 
         encoding = self.last_conv_downsample(encoding)
 
@@ -227,10 +226,14 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
             upsample2 = self.up_sampled_block_2(upsample1)  # 128*32*32 or 128*24*32 (crop sky)
             upsample3 = self.up_sampled_block_3(upsample2)  # 64*64*64 or 64*48*64 (crop sky)
             upsample4 = self.up_sampled_block_4(upsample3)  # 32*128*128 or 32*74*128 (crop sky)
-
+            
+            ### for segmentation
             out_seg = self.last_bn(
                 self.last_conv_segmentation(upsample4)
             )  # nb_class_segmentation*128*128
+
+            ### For image reconstruction
+            # out_seg = nn.functional.relu(self.last_conv_segmentation(upsample4))
 
 
         # Classification branch, traffic_light (+ state), intersection or none
@@ -245,7 +248,10 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
             dist_to_tl_output = self.fc2_distance_to_tl(traffic_light_state_net)
         
         if self.dist_car:
-            dist_to_frontcar = self.fc_dist_to_frontcar(classif_state_net)
+            # dist_to_frontcar = self.fc_dist_to_frontcar(classif_state_net)
+            dist_to_frontcar = self.fc1_dist_to_frontcar(classif_state_net)
+            dist_to_frontcar = nn.functional.relu(dist_to_frontcar)
+            dist_to_frontcar = self.fc2_dist_to_frontcar(dist_to_frontcar)
 
         if self.action:
             if self.use_sensor and self.use_aux:

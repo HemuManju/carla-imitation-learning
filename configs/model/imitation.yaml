@@ -1,15 +1,13 @@
 # @package _global_
 
-logs: ['Log1', 'Log2', 'Log3', 'Log4', 'Log5', 'Log6']
-camera: ['camera']
 
 ##-----------------------------------------------------#
 # Training parameters
 NUM_EPOCHS: 25
 BATCH_SIZE: 64
-NUM_WORKERS: 8
+NUM_WORKERS: 10
 LEARNING_RATE: 0.0001
-WEIGHT_DECAY: 1e-6
+WEIGHT_DECAY: 0 #1e-6
 DROP_OUT: 0.20
 TEST_SIZE: 0.15
 VALID_SIZE: 0.15
@@ -19,14 +17,31 @@ VALID_SIZE: 0.15
 gray_scale: False
 crop_sky: True
 loading_mode: 'single'                     # single, multiple or multiple_frameskip
-modalities: ['camera', 'semantic_label']   # 'camera' must exist
+modalities: ['camera']                     # 'camera' must exist
+data_augmentation: False
+
+### Network Parameters
+pretrained: False
+
+nb_images_input: 1
+nb_images_output: 1
+hidden_size: 256
+nb_class_segmentation: 3                   # 3 for image reconstruction, 6 for semseg
+
+semseg: False
+traffic_status: True
+traffic_dist: True
+dist_car: True
+action: True
+
+use_sensor: True
+use_aux: True
+
 
 obs_size: 1 #4
 n_actions: 9
 frame_skip: 4
 
-train_logs: ['Log1']
-test_logs: ['Log2']
 image_size: [1, 256, 256]
 alpha: 0.75
 beta: 0.1

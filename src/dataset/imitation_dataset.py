@@ -32,7 +32,10 @@ class SequentialTorchDataset(Dataset):
 
     Args:
         Dataset ([hparams]): the hyperparamters
-        dataset_type ([string]): train, test, or val 
+        dataset_type ([string]): train, test, or val
+    
+    Notes:
+    - data stats are: (mean=[0.384, 0.389, 0.403], std=[0.126, 0.123, 0.126]) 
 
     Returns:
         [tuple of (list) of torch tensors]: input (may contain output) consisting of images,
@@ -43,23 +46,35 @@ class SequentialTorchDataset(Dataset):
         self.hparams = hparams
         self.image_files = dict.fromkeys(self.hparams['modalities'])
         self.semantic = 'semantic_label' in self.image_files.keys()
+        self.dataset_type = dataset_type
 
 
         self.read_path = hparams['data_dir']+ dataset_type + '/'
         print(self.read_path)
 
-        for modal in self.image_files.keys():
-            self.image_files[modal] = sorted(glob(self.read_path +'*/'+ modal + '/*'))
+        for modal in self.image_files.keys(): # sort by image names
+            paths = glob(self.read_path +'*/'+modal+'/*')
+            self.image_files[modal] = sorted(paths, key=lambda x: int(x.split(modal+'/')[1].split('.')[0]))
 
         self.file_idx = [int(name.split('/')[-1].split('.')[0]) for name in self.image_files['camera']]
         self.file_idx = (np.array(self.file_idx) - self.file_idx[0]).tolist()  # always start at 0
 
-        assert len(self.file_idx) == self.file_idx[-1]+1 == len(self.image_files['camera'])
+        assert len(self.file_idx) == self.file_idx[-1]+1 == len(self.image_files['camera']), '{} {} {}'.format(
+           len(self.file_idx), self.file_idx[-1]+1, len(self.image_files['camera']))
 
         # To combbine the data fromes if havent already done so
         if not os.path.exists(self.read_path + 'sensor_all.json'):
             self._combineSensorDataframes()
         self._load_sensor()
+
+        # Transforms
+        self.transforms = transforms.Compose([
+            # transforms.Normalize(mean=[0.384, 0.389, 0.403], std=[0.126, 0.123, 0.126]),
+            # transforms.Grayscale(),
+            transforms.ColorJitter(brightness=.5, contrast=.5),
+            transforms.GaussianBlur(kernel_size=(3, 3), sigma=(0.05, 1.5)),
+            transforms.RandomAdjustSharpness(2, p=0.5)
+        ]) 
 
     def _load_sensor(self):
         '''Load the sensor data and labels from a single json file
@@ -76,8 +91,8 @@ class SequentialTorchDataset(Dataset):
 
         sensor = np.vstack([np.array(sensor_df['command'].tolist()),                               # sensor data
                         np.linalg.norm(np.array(sensor_df['velocity'].tolist()), axis=1),
-                        np.linalg.norm(np.array(sensor_df['acceleration'].tolist()), axis=1)
-                    ]).T
+                        # np.linalg.norm(np.array(sensor_df['acceleration'].tolist()), axis=1),
+                    ]).T 
 
         target = np.stack((redlight_status, action_ind, redlight_dist, frontcar_dist), axis=-1)
         
@@ -105,7 +120,7 @@ class SequentialTorchDataset(Dataset):
         '''
         # categories: moving obstacles, traffic lights, road markers, road, sidewalk and background
         segclass_colors = {
-            0: [70, 70, 70],         # 0: Building 1, Fence 2, Other 3, poles 5, vegetation 9, walls 11
+            0: [70, 70, 70],       # 0: Building 1, Fence 2, Other 3, poles 5, vegetation 9, walls 11
             1: [0, 0, 142],        # 1: pedestrian 4, vehicles 10
             2: [220, 220, 0],      # 2: traffic signs 12, 
             3: [153, 153, 153],    # 3: roadlines 6,
@@ -122,7 +137,8 @@ class SequentialTorchDataset(Dataset):
     def _combineSensorDataframes(self):
         '''Combines sensor data from different logs into a single json file
         '''
-        files = sorted(glob( self.read_path + '*/*.json'))
+        paths = glob(self.read_path + '*/*.json')
+        files = sorted(paths, key=lambda x: int(x.split('sensor_')[1].split('.')[0]))
         dfs = []
         for i in tqdm.tqdm(range(len(files)), desc='Combining sensor data'):
             dfs.append(pd.read_json(files[i], orient='index'))
@@ -145,11 +161,11 @@ class SequentialTorchDataset(Dataset):
 
         assert len(image_array.shape) == 3
         image_array = image_array[0,:,:]                                            # classes encocded in red channel
-        resized_image_array = cv2.resize(image_array, (128,74), cv2.INTER_NEAREST)  # Note: axis are flipped in cv
+        image_array = cv2.resize(image_array, (128,74), cv2.INTER_NEAREST)          # Note: axis are flipped in cv
 
-        semseg_target = np.zeros_like(resized_image_array)
+        semseg_target = np.zeros_like(image_array)
         for _, (clss, val) in enumerate(segclass.items()):
-            mask = np.isin(resized_image_array, val)
+            mask = np.isin(image_array, val)
             semseg_target[np.where(mask)] = clss
         
         return semseg_target  # num_images * height * width
@@ -170,7 +186,7 @@ class SequentialTorchDataset(Dataset):
 
         images = np.moveaxis(images, -1,-3)                 # need [ch,height,width] or [num_imgs,ch,height,width]
         if self.hparams['crop_sky']:
-            images = images[...,120:,:]                     # if crop_sky
+            images = images[...,100:,:]                     # if crop_sky
 
 
         if modality =='camera':
@@ -203,6 +219,8 @@ class SequentialTorchDataset(Dataset):
         # Load the image
         x = self._load_file(index, mode=self.hparams['loading_mode'])
         x = torch.from_numpy(x).type(torch.float32)
+        if self.hparams['data_augmentation'] and self.dataset_type=='train':
+            x = self.transforms(x)
 
         x_sem = 0
         if self.semantic: 
@@ -224,7 +242,7 @@ def sequential_train_val_test_iterator(hparams, modes=['train', 'val', 'test']):
     '''
     data_iterator = {}
     for mode in modes:
-        data = SequentialTorchDataset(hparams, dataset_type=mode)
+        data = SequentialTorchDataset(hparams, dataset_type=mode+'_trash')
         data_iterator[mode+'_dataloader'] = DataLoader(data,
                                                        batch_size=hparams['BATCH_SIZE'],
                                                        shuffle=False, num_workers=hparams['NUM_WORKERS']
@@ -288,3 +306,19 @@ def clb_weight(y):
 
     # class_weight = np.reciprocal(traindata_sum, where = traindata_sum > 0)
     class_weight = torch.from_numpy(class_weight)
+
+def calculateStats(dataloader):
+    '''calcualte the statistics of the image data
+    '''
+    means, stds = [], []
+    for i, batch in enumerate(dataloader):
+        x, y = batch
+        x[0] = x[0].to(torch.device('cuda:0'))
+        # x[1] = x[1].to(torch.device('cuda:0'))
+
+        # To calculate mean and std
+        means.append(torch.mean(x[0], dim =(0,2,3)).cpu().numpy())
+        stds.append(torch.std(x[0], dim =(0,2,3)).cpu().numpy())
+
+    print('means',np.mean(means, axis=0))
+    print('stds',np.mean(stds, axis=0))

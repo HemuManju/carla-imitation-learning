@@ -17,18 +17,6 @@ from utils import skip_run, get_num_gpus
 # Initialize the config directory
 initialize(config_path="configs", job_name="vae")
 
-# with skip_run('skip', 'split_image_folder') as check, check():
-#     hparams = compose(config_name="config")
-#     hparams['camera'] = 'semantic'
-#     log = hparams['train_logs'][0]
-
-#     read_path = hparams['data_dir'] + 'raw' + '/' + log
-#     print(read_path)
-#     splitfolders.ratio(read_path,
-#                        output=hparams['data_dir'] + 'processed' + '/' + log,
-#                        seed=1337,
-#                        ratio=(.8, 0.1, 0.1),
-#                        shuffle=False)
 
 with skip_run('skip', 'behavior_cloning') as check, check():
     # Load the parameters
@@ -66,11 +54,11 @@ with skip_run('skip', 'behavior_cloning') as check, check():
                              callbacks=[checkpoint_callback])
         trainer.fit(model)
 
-with skip_run('skip', 'aux-adv') as check, check():
+with skip_run('run', 'aux-adv') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
-
-    ckpt_paths = ['logs/2021-12-12/imitation.ckpt', 'logs/2021-12-12/imitation-v1.ckpt']
+    ckpt_paths = ['logs/supervised_imager_withaux_factor12/imitation-epoch=21-val_loss=0.97-train_loss=0.66.ckpt']
+    
     for ckpt_path in ckpt_paths:
 
         # Random seed
@@ -81,27 +69,37 @@ with skip_run('skip', 'aux-adv') as check, check():
         checkpoint_callback = pl.callbacks.ModelCheckpoint(
             monitor='val_loss',
             dirpath=hparams.log_dir,
-            save_top_k=1,
-            filename='imitation',
+            # period=2,
+            save_top_k=-1,
+            filename='imitation-{epoch}-{val_loss:.2f}-{train_loss:.2f}',
             mode='min')
         logger = pl.loggers.TensorBoardLogger(hparams.log_dir,
                                               name='imitation')
 
         # All this magic number should match the one used when training supervised...
-        net = Model_Segmentation_Traffic_Light_Supervised(1, 1, 1024, 6, 4, True, pretrained=True)
+        net = Model_Segmentation_Traffic_Light_Supervised(hparams)
+        
+        # if want to load weights
         selected_subnets = ['fc_action']
         net.loadWeights(ckpt_path=ckpt_path, selected_subnet=selected_subnets, exclude_mode=True)
         net.freezeLayers(selected_subnet=selected_subnets, exclude_mode=True)
         
         # output = net(net.example_input_array)
         # print(output)  # verification
-        data_loader = imitation_dataset.sequential_train_val_test_iterator(hparams)
+        data_loader = imitation_dataset.sequential_train_val_test_iterator(hparams, modes=['train', 'val'])
 
         model = Imitation(hparams, net, data_loader)
         trainer = pl.Trainer(gpus=gpus,
                              max_epochs=hparams.NUM_EPOCHS,
                              logger=logger,
                              callbacks=[checkpoint_callback])
+        
+        ### Log the Loss before training
+        trainer.validate(model, dataloaders=[data_loader['val_dataloader']])
+        model.val_loss_in_valStep = False
+        trainer.validate(model, dataloaders=[data_loader['train_dataloader']])
+        model.val_loss_in_valStep = True
+        
         trainer.fit(model)
 
 
@@ -152,34 +150,23 @@ with skip_run('skip', 'test') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
 
-    ckpt_paths = ['logs/2021-12-12/imitation.ckpt']
+    # ckpt_paths = ['logs/all_aux_supervised/2021-12-12/imitation.ckpt']
+    ckpt_paths = ['logs/supervised_image_recons_only/imitation-epoch=7-val_loss=0.07-train_loss=0.06.ckpt']
     for ckpt_path in ckpt_paths:
         # Random seed
-        gpus = get_num_gpus()
         torch.manual_seed(hparams.pytorch_seed)
 
-        # Checkpoint
-        checkpoint_callback = pl.callbacks.ModelCheckpoint(
-            monitor='val_loss',
-            dirpath=hparams.log_dir,
-            save_top_k=1,
-            filename='imitation',
-            mode='min')
-        logger = pl.loggers.TensorBoardLogger(hparams.log_dir,
-                                              name='imitation')
-
         # Setup
-        # net = CNNAuxNet(hparams)
-        net = Model_Segmentation_Traffic_Light_Supervised(1, 1, 1024, 6, 4, True, pretrained=True)
+        net = Model_Segmentation_Traffic_Light_Supervised(hparams)
         # output = net(net.example_input_array)
         # print(output)  # verification
 
         data_loader = imitation_dataset.sequential_train_val_test_iterator(
-            hparams, modes=['val'])
-        
+            hparams, modes=[ 'train_trash'])
+
         model = Imitation(hparams, net, data_loader)
         ckpt = ckpt_path
         model = model.load_from_checkpoint(ckpt, hparams=hparams, net=net, data_loader=data_loader)
-
+        
         # model.calcAccuracy(dataset_type='val')
-        model.sampleOutput(dataset_type='val')
+        model.sampleOutput(dataset_type='train_trash')
