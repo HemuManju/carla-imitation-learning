@@ -89,6 +89,7 @@ class SequentialTorchDataset(Dataset):
         redlight_dist = distance_to_discrete(np.array(sensor_df['traffic_light_dist'].tolist()))   # dist to traffic light
         frontcar_dist = distance_to_discrete(np.array(sensor_df['frontcar_dist'].tolist()))        # dist to front car
 
+        # self.visualize(np.array(sensor_df['command'].tolist()))
         sensor = np.vstack([np.array(sensor_df['command'].tolist()),                               # sensor data
                         np.linalg.norm(np.array(sensor_df['velocity'].tolist()), axis=1),
                         # np.linalg.norm(np.array(sensor_df['acceleration'].tolist()), axis=1),
@@ -242,7 +243,7 @@ def sequential_train_val_test_iterator(hparams, modes=['train', 'val', 'test']):
     '''
     data_iterator = {}
     for mode in modes:
-        data = SequentialTorchDataset(hparams, dataset_type=mode+'_trash')
+        data = SequentialTorchDataset(hparams, dataset_type=mode+'')
         data_iterator[mode+'_dataloader'] = DataLoader(data,
                                                        batch_size=hparams['BATCH_SIZE'],
                                                        shuffle=False, num_workers=hparams['NUM_WORKERS']

@@ -57,7 +57,7 @@ with skip_run('skip', 'behavior_cloning') as check, check():
 with skip_run('run', 'aux-adv') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
-    ckpt_paths = ['logs/supervised_imager_withaux_factor12/imitation-epoch=21-val_loss=0.97-train_loss=0.66.ckpt']
+    ckpt_paths = ['logs/supervised_semseg_only/imitation-epoch=7-val_loss=0.14.ckpt']
     
     for ckpt_path in ckpt_paths:
 
@@ -150,8 +150,8 @@ with skip_run('skip', 'test') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
 
-    # ckpt_paths = ['logs/all_aux_supervised/2021-12-12/imitation.ckpt']
-    ckpt_paths = ['logs/supervised_image_recons_only/imitation-epoch=7-val_loss=0.07-train_loss=0.06.ckpt']
+    ckpt_paths = ['logs/supervised_image_recons_only/imitation-epoch=15-val_loss=0.05-train_loss=0.05.ckpt']
+    
     for ckpt_path in ckpt_paths:
         # Random seed
         torch.manual_seed(hparams.pytorch_seed)
@@ -162,11 +162,11 @@ with skip_run('skip', 'test') as check, check():
         # print(output)  # verification
 
         data_loader = imitation_dataset.sequential_train_val_test_iterator(
-            hparams, modes=[ 'train_trash'])
+            hparams, modes=[ 'test'])
 
         model = Imitation(hparams, net, data_loader)
         ckpt = ckpt_path
         model = model.load_from_checkpoint(ckpt, hparams=hparams, net=net, data_loader=data_loader)
         
         # model.calcAccuracy(dataset_type='val')
-        model.sampleOutput(dataset_type='train_trash')
+        model.sampleOutput(dataset_type='test')

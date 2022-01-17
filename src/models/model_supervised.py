@@ -73,7 +73,7 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
         assert resnet18.layer3[0].downsample[0].stride == (2, 2)
         assert resnet18.layer4[0].downsample[0].stride == (2, 2)
 
-        self.example_input_array = [torch.randn((32, 3, 168, 288)), torch.randn((32, 3))]
+        self.example_input_array = [torch.randn((32, 3, 188, 288)), torch.randn((32, 3))]
         self.semseg = hparams['semseg']
         self.traffic_status = hparams['traffic_status']
         self.traffic_dist = hparams['traffic_dist']
@@ -82,6 +82,7 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
 
         self.use_aux =  hparams['use_aux']
         self.use_sensor = hparams['use_sensor']
+        self.use_hlcmd = hparams['use_hlcmd']      # high-level command
 
         nb_images_input = hparams['nb_images_input']
         nb_images_output = hparams['nb_images_output']
@@ -116,7 +117,6 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
 
         if self.dist_car:
             # classification on the distance to the front car
-
             self.fc1_dist_to_frontcar = nn.Linear(self.size_state_RL, hidden_size)
             self.fc2_dist_to_frontcar = nn.Linear(hidden_size, 4)
 
@@ -151,13 +151,35 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
 
         if self.action:
             num_actions = 20
-            self.fc_action = nn.Sequential(
-                nn.Linear(self.size_state_RL + aux_len + sensor_len, hidden_size),
-                nn.LeakyReLU(),
-                nn.Linear(hidden_size, int(hidden_size/2)),
-                nn.LeakyReLU(),
-                nn.Linear(int(hidden_size/2), num_actions)
-            )
+            if not self.use_hlcmd:
+                self.fc_action = nn.Sequential(
+                    nn.Linear(self.size_state_RL + aux_len + sensor_len, hidden_size),
+                    nn.LeakyReLU(),
+                    nn.Linear(hidden_size, int(hidden_size/2)),
+                    nn.LeakyReLU(),
+                    nn.Linear(int(hidden_size/2), num_actions)
+                )
+            else:
+                self.fc_action_base = nn.Sequential(
+                    nn.Linear(self.size_state_RL + aux_len + sensor_len, hidden_size), nn.LeakyReLU(),
+                    nn.Linear(hidden_size, int(hidden_size/2)), nn.LeakyReLU(),
+                )
+                self.fc_action1 = nn.Sequential(
+                    nn.Linear(int(hidden_size/2), num_actions)
+                )
+
+                self.fc_action2 = nn.Sequential(
+                    nn.Linear(int(hidden_size/2), num_actions)
+                )
+
+                self.fc_action3 = nn.Sequential(
+                    nn.Linear(int(hidden_size/2), num_actions)
+                )
+
+                self.fc_action4 = nn.Sequential(
+                    nn.Linear(int(hidden_size/2), num_actions)
+                )
+
         
         numparams = sum(p.numel() for p in self.encoder.parameters() if p.requires_grad)
         print('encoder params:', numparams)
@@ -188,6 +210,7 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
         for name, param in self.named_parameters():
             if param.requires_grad:
                 print('\t',name)
+        return
 
     def loadWeights(self, ckpt_path, selected_subnet=['encoder', 'decoder'], exclude_mode=False):
         '''loads selected subnet weights (or everything else if exclude_mode is true)
@@ -206,17 +229,17 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
                     tr_param = trained_params['net.' + name]
                     param.copy_(tr_param)
                     print('\t',name)
-
         print('Loaded selected weights complete!***************************\n')
+        return
 
 
     def forward(self, x):
 
-        # with torch.no_grad():
-        # Encoder first, resnet18 without last fc and abg pooling
-        encoding = self.encoder(x[0])  # 512*4*4 or 512*4*3 (crop sky)
+        with torch.no_grad():
+            # Encoder first, resnet18 without last fc and abg pooling
+            encoding = self.encoder(x[0])  # 512*4*4 or 512*4*3 (crop sky)
 
-        encoding = self.last_conv_downsample(encoding)
+            encoding = self.last_conv_downsample(encoding)
 
         out_seg, tl_state_output, dist_to_tl_output, dist_to_frontcar, act = None, None,  None, None, None
         if self.semseg:
@@ -266,6 +289,24 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
             else:
                 act_input = classif_state_net
 
-            act = self.fc_action(act_input)
+            if self.use_hlcmd:
+                act_input = self.fc_action_base(act_input)
+                act_out = []
+                for cmd in range(1,5):
+                    ind = torch.where(x[1][:,0]==cmd)
+                    act_inp = act_input[ind]
+
+                    # forward pass
+                    if cmd == 1:
+                        act_out.append(self.fc_action1(act_inp))
+                    elif cmd == 2:
+                        act_out.append(self.fc_action2(act_inp))
+                    elif cmd == 3:
+                        act_out.append(self.fc_action3(act_inp))
+                    elif cmd == 4:
+                        act_out.append(self.fc_action4(act_inp))    
+                act = torch.cat(act_out)
+            else:
+                act = self.fc_action(act_input)
 
         return out_seg, tl_state_output, dist_to_tl_output, dist_to_frontcar, act

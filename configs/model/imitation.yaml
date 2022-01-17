@@ -17,7 +17,7 @@ VALID_SIZE: 0.15
 gray_scale: False
 crop_sky: True
 loading_mode: 'single'                     # single, multiple or multiple_frameskip
-modalities: ['camera']                     # 'camera' must exist
+modalities: ['camera', 'semantic_label']                     # 'camera' must exist
 data_augmentation: False
 
 ### Network Parameters
@@ -26,16 +26,17 @@ pretrained: False
 nb_images_input: 1
 nb_images_output: 1
 hidden_size: 256
-nb_class_segmentation: 3                   # 3 for image reconstruction, 6 for semseg
+nb_class_segmentation: 6                   # 3 for image reconstruction, 6 for semseg
 
 semseg: False
-traffic_status: True
-traffic_dist: True
-dist_car: True
+traffic_status: False
+traffic_dist: False
+dist_car: False
 action: True
 
 use_sensor: True
-use_aux: True
+use_aux: False
+use_hlcmd: True
 
 
 obs_size: 1 #4

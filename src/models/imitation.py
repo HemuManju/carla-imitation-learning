@@ -31,11 +31,6 @@ def lossCriterion(obj, inp, out, validation=False):
     # losses['tr_dist'] = nn.functional.cross_entropy(inp[2], out[1][:,2], obj.cb_weight['tr_dist'])      # dist to traffic light
     # losses['car_dist'] = nn.functional.cross_entropy(inp[3], out[1][:,3], obj.cb_weight['car_dist'])    # dist to front car
 
-    ### NOT CB
-    # losses['tr_status'] = nn.functional.cross_entropy(inp[1], out[1][:,0])  # trafficlight status detection
-    # losses['tr_dist'] = nn.functional.cross_entropy(inp[2], out[1][:,2])    # dist to traffic light
-    # losses['car_dist'] = nn.functional.cross_entropy(inp[3], out[1][:,3])   # dist to front car
-
     loss = 0
     for _, (k, val) in enumerate(losses.items()):
         # print('{}: {:.2f}'.format(k, val.item()), end='\t')
@@ -93,11 +88,15 @@ class Imitation(pl.LightningModule):
 
     def on_train_start(self) -> None:
         self.val_loss_in_valStep = True
-        # self.trainer.run_evaluation()
-        # self.trainer.checkpoint_callback.on_train_start(self.trainer, pl_module)
 
     def training_step(self, batch, batch_idx):
         x, y = batch
+        
+        if self.h_params['use_hlcmd']:
+            sorted_ind = x[1][:,0].argsort()  # directional command
+            for it in x:
+                it = it[sorted_ind]
+            y = y[sorted_ind]
 
         # Predict and calculate loss
         output = self.forward(x)
@@ -109,6 +108,12 @@ class Imitation(pl.LightningModule):
 
     def validation_step(self, batch, batch_idx):
         x, y = batch
+
+        if self.h_params['use_hlcmd']:
+            sorted_ind = x[1][:,0].argsort()  # directional command
+            for it in x:
+                it = it[sorted_ind]
+            y = y[sorted_ind]
 
         # Predict and calculate loss
         output = self.forward(x)
@@ -144,9 +149,9 @@ class Imitation(pl.LightningModule):
         '''
        
         ### select keys in the auxiliary model
-        keys = ['dist_car', 'traffic', 'dist_tr']
+        # keys = ['dist_car', 'traffic', 'dist_tr']
         # keys = ['act']
-        # keys = ['semseg']
+        keys = ['semseg']
         
         self.net.eval()
         with torch.no_grad():
@@ -248,7 +253,7 @@ class Imitation(pl.LightningModule):
                 # array2 = torch.argmax(output[0][b_ind][:],dim=0).cpu().detach().numpy()
                 # array2 = plotSemseg(array2)
 
-                ## semseg ground truth
+                # ### semseg ground truth
                 # array3 = x[2][b_ind][:].cpu().detach().numpy()
                 # array3 = plotSemseg(array3)
    
