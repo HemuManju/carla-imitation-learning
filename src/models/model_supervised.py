@@ -162,21 +162,25 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
             else:
                 self.fc_action_base = nn.Sequential(
                     nn.Linear(self.size_state_RL + aux_len + sensor_len, hidden_size), nn.LeakyReLU(),
-                    nn.Linear(hidden_size, int(hidden_size/2)), nn.LeakyReLU(),
                 )
+
                 self.fc_action1 = nn.Sequential(
+                    nn.Linear(hidden_size, int(hidden_size/2)), nn.LeakyReLU(),
                     nn.Linear(int(hidden_size/2), num_actions)
                 )
 
                 self.fc_action2 = nn.Sequential(
+                    nn.Linear(hidden_size, int(hidden_size/2)), nn.LeakyReLU(),
                     nn.Linear(int(hidden_size/2), num_actions)
                 )
 
                 self.fc_action3 = nn.Sequential(
+                    nn.Linear(hidden_size, int(hidden_size/2)), nn.LeakyReLU(),
                     nn.Linear(int(hidden_size/2), num_actions)
                 )
 
                 self.fc_action4 = nn.Sequential(
+                   nn.Linear(hidden_size, int(hidden_size/2)), nn.LeakyReLU(),
                     nn.Linear(int(hidden_size/2), num_actions)
                 )
 

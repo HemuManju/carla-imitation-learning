@@ -93,9 +93,10 @@ class Imitation(pl.LightningModule):
         x, y = batch
         
         if self.h_params['use_hlcmd']:
-            sorted_ind = x[1][:,0].argsort()  # directional command
-            for it in x:
-                it = it[sorted_ind]
+            _, sorted_ind = torch.sort(x[1][:,0], stable=True)
+            x[0] = x[0][sorted_ind]
+            x[1] = x[1][sorted_ind]
+            x[2] = x[2][sorted_ind]
             y = y[sorted_ind]
 
         # Predict and calculate loss
@@ -110,9 +111,11 @@ class Imitation(pl.LightningModule):
         x, y = batch
 
         if self.h_params['use_hlcmd']:
-            sorted_ind = x[1][:,0].argsort()  # directional command
-            for it in x:
-                it = it[sorted_ind]
+            _, sorted_ind = torch.sort(x[1][:,0], stable=True)
+            x[0] = x[0][sorted_ind]
+            x[1] = x[1][sorted_ind]
+            x[2] = x[2][sorted_ind]
+
             y = y[sorted_ind]
 
         # Predict and calculate loss
@@ -150,8 +153,8 @@ class Imitation(pl.LightningModule):
        
         ### select keys in the auxiliary model
         # keys = ['dist_car', 'traffic', 'dist_tr']
-        # keys = ['act']
-        keys = ['semseg']
+        keys = ['act']
+        # keys = ['semseg']
         
         self.net.eval()
         with torch.no_grad():

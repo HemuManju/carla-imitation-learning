@@ -54,7 +54,8 @@ with skip_run('skip', 'behavior_cloning') as check, check():
                              callbacks=[checkpoint_callback])
         trainer.fit(model)
 
-with skip_run('run', 'aux-adv') as check, check():
+with skip_run('skip', 'aux-adv') as check, check():
+
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
     ckpt_paths = ['logs/supervised_semseg_only/imitation-epoch=7-val_loss=0.14.ckpt']
@@ -146,11 +147,12 @@ with skip_run('skip', 'aux') as check, check():
         trainer.fit(model)
 
 
-with skip_run('skip', 'test') as check, check():
+with skip_run('run', 'test') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
 
     ckpt_paths = ['logs/supervised_image_recons_only/imitation-epoch=15-val_loss=0.05-train_loss=0.05.ckpt']
+    ckpt_paths = ['logs/2022-01-17/imitation-epoch=9-val_loss=0.38-train_loss=0.16.ckpt']
     
     for ckpt_path in ckpt_paths:
         # Random seed
@@ -162,11 +164,11 @@ with skip_run('skip', 'test') as check, check():
         # print(output)  # verification
 
         data_loader = imitation_dataset.sequential_train_val_test_iterator(
-            hparams, modes=[ 'test'])
+            hparams, modes=[ 'val'])
 
         model = Imitation(hparams, net, data_loader)
         ckpt = ckpt_path
         model = model.load_from_checkpoint(ckpt, hparams=hparams, net=net, data_loader=data_loader)
         
-        # model.calcAccuracy(dataset_type='val')
-        model.sampleOutput(dataset_type='test')
+        model.calcAccuracy(dataset_type='val')
+        # model.sampleOutput(dataset_type='test')
