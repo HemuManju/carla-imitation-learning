@@ -1,5 +1,7 @@
 from datetime import date
 
+import pandas as pd
+
 import torch
 import pytorch_lightning as pl
 from pytorch_lightning.callbacks.early_stopping import EarlyStopping
@@ -18,7 +20,7 @@ from src.architectures.nets import CNNAutoEncoder, ConvNet1, ConvNetRawSegment
 from src.models.vae import VAE
 from src.models.imitation import Imitation
 
-from src.visualization.visualize import show_grid
+from src.visualization.visualize import show_grid, plot_trends
 
 import yaml
 from utils import skip_run, get_num_gpus
@@ -169,4 +171,21 @@ with skip_run('skip', 'algorithm_stats') as check, check():
     classification_accuracy(cfg)
 
 with skip_run('skip', 'testing_logics') as check, check():
-    pass
+    data = pd.read_csv('data/external/accs.csv', na_values=0).fillna(0)
+    df = data.max(axis=1)
+    print(df.mean() * 100, df.std() * 100)
+
+with skip_run('skip', 'figure_plotting') as check, check():
+    plt.style.use('clean')
+    plt.rcParams['axes.grid'] = True
+    paths = [
+        'data/processed/1632282330_log.txt',
+        'data/processed/1633690232_log.txt',
+        'data/processed/1633690363_log.txt'
+    ]
+    legends = [
+        'Train (Simple)', 'Validation (Simple)', 'Train (Lat. att.)',
+        'Validation (Lat. att.)', 'Train (Conv. att.)',
+        'Validation (Conv. att.)'
+    ]
+    plot_trends(paths, legends)

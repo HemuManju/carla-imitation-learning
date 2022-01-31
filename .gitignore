@@ -253,3 +253,4 @@ Thumbs.db
 
 # By default exclude logs
 /logs/
+/validation/
