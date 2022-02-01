@@ -7,6 +7,7 @@ from src.dataset import vae_dataset, imitation_dataset
 from src.architectures.nets import CNNAutoEncoder, CNNAuxNet, ConvNet1, ConvNetRawSegment, CNNAuxNet
 
 from src.models.model_supervised import Model_Segmentation_Traffic_Light_Supervised
+from src.models.model_supervised_rnn import Model_Segmentation_Traffic_Light_Supervised_RNN
 
 from src.models.vae import VAE
 from src.models.imitation import Imitation
@@ -54,11 +55,11 @@ with skip_run('skip', 'behavior_cloning') as check, check():
                              callbacks=[checkpoint_callback])
         trainer.fit(model)
 
-with skip_run('skip', 'aux-adv') as check, check():
+with skip_run('run', 'aux-adv') as check, check():
 
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
-    ckpt_paths = ['logs/supervised_semseg_only/imitation-epoch=7-val_loss=0.14.ckpt']
+    ckpt_paths = ['logs/all_aux_supervised/imitation-epoch=11-val_loss=0.58-train_loss=0.42.ckpt']
     
     for ckpt_path in ckpt_paths:
 
@@ -77,13 +78,15 @@ with skip_run('skip', 'aux-adv') as check, check():
         logger = pl.loggers.TensorBoardLogger(hparams.log_dir,
                                               name='imitation')
 
-        # All this magic number should match the one used when training supervised...
-        net = Model_Segmentation_Traffic_Light_Supervised(hparams)
-        
+        ### create the AE net
+        net_ae = Model_Segmentation_Traffic_Light_Supervised(hparams)
         # if want to load weights
         selected_subnets = ['fc_action']
-        net.loadWeights(ckpt_path=ckpt_path, selected_subnet=selected_subnets, exclude_mode=True)
-        net.freezeLayers(selected_subnet=selected_subnets, exclude_mode=True)
+        net_ae.loadWeights(ckpt_path=ckpt_path, selected_subnet=selected_subnets, exclude_mode=True)
+        net_ae.freezeLayers(selected_subnet=selected_subnets, exclude_mode=True)
+        
+        ### create the RNN net from AE
+        net = Model_Segmentation_Traffic_Light_Supervised_RNN(hparams, net_ae)
         
         # output = net(net.example_input_array)
         # print(output)  # verification
@@ -147,7 +150,7 @@ with skip_run('skip', 'aux') as check, check():
         trainer.fit(model)
 
 
-with skip_run('run', 'test') as check, check():
+with skip_run('skip', 'test') as check, check():
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
 

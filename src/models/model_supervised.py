@@ -45,6 +45,8 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
             self.size_state_RL = 6144
         else:
             self.size_state_RL = 8192
+        if hparams['rnn_ae']:
+            self.size_state_RL = 1024       # for RNN training
         resnet18 = models.resnet18(pretrained=hparams['pretrained'])
         
         # See https://arxiv.org/abs/1606.02147v1 section 4: Information-preserving
@@ -102,8 +104,10 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
             *(list(resnet18.children())[:-2])
         )  # resnet18_no_fc_no_avgpool
         self.last_conv_downsample = nn.Sequential(
-            nn.Conv2d(512, 512, kernel_size=(2, 2), stride=(2, 2), bias=False),
-            nn.BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+            # nn.Conv2d(512, 512, kernel_size=(2, 2), stride=(2, 2), bias=False),
+            # nn.BatchNorm2d(512, eps=1e-05, momentum=0.1, affine=True, track_running_stats=True),
+
+            nn.AdaptiveAvgPool2d((1,2)),   # for reducdd latent size for RNN training
         )
 
         if self.traffic_status:

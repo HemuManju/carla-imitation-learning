@@ -14,6 +14,37 @@ import random
 from matplotlib import pyplot as plt
 
 
+def lossRNNCriterion(obj, inp, out, validation=False):
+    '''The auxiliary loss function
+    '''
+    losses={} 
+    # model output: out_seg, tl_state_output, dist_to_tl_output, dist_to_frontcar, act, rnn_input, rnn_out
+
+    ### latent losses
+    losses['latent'] = nn.functional.smooth_l1_loss(inp[6], inp[5][:,1:,...])  # latent loss
+
+    ### classification
+    # losses['image_r'] = 1 - ms_ssim(inp[0], out[0][0], data_range=1, size_average=True)   # image reconstruction
+    # losses['semantic'] = nn.functional.cross_entropy(inp[0], out[0][2])                   # pixel-wise semantic segmentation
+
+    ### Class balanced
+    # losses['act'] = nn.functional.cross_entropy(inp[4], out[1][:,1], obj.cb_weight['act'])   # Autopilot Action
+    # losses['tr_status'] = nn.functional.cross_entropy(inp[1], out[1][:,0], obj.cb_weight['tr_status'])  # trafficlight status detection
+    # losses['tr_dist'] = nn.functional.cross_entropy(inp[2], out[1][:,2], obj.cb_weight['tr_dist'])      # dist to traffic light
+    # losses['car_dist'] = nn.functional.cross_entropy(inp[3], out[1][:,3], obj.cb_weight['car_dist'])    # dist to front car
+
+    loss = 0
+    for _, (k, val) in enumerate(losses.items()):
+        # print('{}: {:.2f}'.format(k, val.item()), end='\t')
+        if not validation:
+            obj.log(k+'_loss', val.item(), on_step=False, on_epoch=True)
+        else:
+            obj.log(k+'_loss_val', val.item(), on_step=False, on_epoch=True)
+        loss += val * obj.loss_factor[k]
+    # print()
+
+    return loss
+
 
 def lossCriterion(obj, inp, out, validation=False):
     '''The auxiliary loss function
@@ -51,7 +82,7 @@ class Imitation(pl.LightningModule):
         self.h_params = hparams
         self.net = net
         self.data_loader = data_loader
-        self.criterion = lossCriterion
+        self.criterion = lossRNNCriterion #lossCriterion
         self.before_train()
 
         self.val_loss_in_valStep = True
@@ -84,7 +115,7 @@ class Imitation(pl.LightningModule):
             occurences[np.where(occurences==0)] = np.max(occurences)
             class_weight = 1.0/occurences
             self.cb_weight[key] = torch.from_numpy(class_weight).type(torch.float32).to(torch.device('cuda:0'))
-        self.loss_factor={'semantic':3, 'act':1, 'image_r':1, 'tr_status':1 ,'tr_dist':1 , 'car_dist': 1}
+        self.loss_factor={'semantic':3, 'act':1, 'image_r':1, 'tr_status':1 ,'tr_dist':1 , 'car_dist': 1, 'latent': 3}
 
     def on_train_start(self) -> None:
         self.val_loss_in_valStep = True

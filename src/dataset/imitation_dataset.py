@@ -174,7 +174,7 @@ class SequentialTorchDataset(Dataset):
     def _load_file(self, index, modality='camera', mode='single'):
         ''' loads an image file and processes it
         '''
-
+                
         if mode == 'single':
             files = self.image_files[modality][index-1:index] 
             images = imread(files[0])                         # single image
@@ -209,9 +209,25 @@ class SequentialTorchDataset(Dataset):
                 images = np.array(img_list)
 
         # if need [num_imgs*ch, height, width]
-        images = np.reshape(images, (-1, images.shape[-2], images.shape[-1]))
+        # images = np.reshape(images, (-1, images.shape[-2], images.shape[-1]))
         
         return images
+
+    def _getlabels(self, index, mode='single'):
+        '''Get the label data and sensor data
+        '''
+        ft_step = 1                      # future step for RNN training
+        if mode == 'single':
+            y = self.y[index].squeeze(0)
+            sensor = self.sensor_data[index].squeeze(0)
+        elif mode == 'multiple':
+            y = self.y[index - self.hparams['frame_skip']:index].squeeze(1)          
+            sensor = self.sensor_data[index - self.hparams['frame_skip']:index].squeeze(1) 
+        elif mode == 'multiple_frameskip':
+            y = self.y[index - 3*self.hparams['frame_skip']:index:3].squeeze(1)
+            sensor = self.sensor_data[index - 3*self.hparams['frame_skip']:index:3].squeeze(1)
+
+        return y, sensor
 
     def __getitem__(self, index):
         if(index < 12): # to handle frame skipping
@@ -228,8 +244,9 @@ class SequentialTorchDataset(Dataset):
             x_sem = self._load_file(index, modality='semantic_label', mode=self.hparams['loading_mode'])
             x_sem = torch.from_numpy(x_sem).type(torch.long).squeeze(0)
 
-        y = torch.from_numpy(self.y[index]).type(torch.long).squeeze(0)
-        sensor = torch.from_numpy(self.sensor_data[index]).type(torch.float32).squeeze(0)
+        y, sensor = self._getlabels(index, mode=self.hparams['loading_mode'])
+        y = torch.from_numpy(y).type(torch.long)
+        sensor = torch.from_numpy(sensor).type(torch.float32)
         
         x = (x, sensor, x_sem)
         return x, y

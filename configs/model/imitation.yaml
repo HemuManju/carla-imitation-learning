@@ -4,7 +4,7 @@
 ##-----------------------------------------------------#
 # Training parameters
 NUM_EPOCHS: 25
-BATCH_SIZE: 64
+BATCH_SIZE: 32
 NUM_WORKERS: 10
 LEARNING_RATE: 0.0001
 WEIGHT_DECAY: 0 #1e-6
@@ -16,7 +16,7 @@ VALID_SIZE: 0.15
 ### data loading paramters
 gray_scale: False
 crop_sky: True
-loading_mode: 'single'                     # single, multiple or multiple_frameskip
+loading_mode: 'multiple' #'single'                     # single, multiple or multiple_frameskip
 modalities: ['camera', 'semantic_label']                     # 'camera' must exist
 data_augmentation: False
 
@@ -27,21 +27,22 @@ nb_images_input: 1
 nb_images_output: 1
 hidden_size: 256
 nb_class_segmentation: 6                   # 3 for image reconstruction, 6 for semseg
+rnn_ae: True
 
 semseg: False
 traffic_status: False
 traffic_dist: False
 dist_car: False
-action: True
+action: False #True
 
 use_sensor: True
-use_aux: False
-use_hlcmd: True
+use_aux: True #False
+use_hlcmd: False #True
 
 
 obs_size: 1 #4
 n_actions: 9
-frame_skip: 4
+frame_skip: 5 #4
 
 image_size: [1, 256, 256]
 alpha: 0.75
