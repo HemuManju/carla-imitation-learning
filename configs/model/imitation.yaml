@@ -42,7 +42,8 @@ use_hlcmd: False #True
 
 obs_size: 1 #4
 n_actions: 9
-frame_skip: 5 #4
+frame_skip: 3
+frame_include: 5 # 4
 
 image_size: [1, 256, 256]
 alpha: 0.75

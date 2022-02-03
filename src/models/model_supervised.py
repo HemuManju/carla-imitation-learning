@@ -241,6 +241,45 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
         return
 
 
+    def forwardAction(self, classif_state_net=None, x=None, tl_state_output=None,
+     dist_to_tl_output=None, dist_to_frontcar=None):
+        '''Forwad through the action network
+        '''
+        if self.use_sensor and self.use_aux:
+            aux_out = torch.cat((tl_state_output, dist_to_tl_output, dist_to_frontcar), dim=1)
+            act_input = torch.cat((aux_out, x[1]), dim=1)               # append sensor data
+            act_input = torch.cat((classif_state_net, act_input), dim=1)
+        elif self.use_aux:
+            aux_out = torch.cat((tl_state_output, dist_to_tl_output, dist_to_frontcar), dim=1)
+            act_input = torch.cat((classif_state_net, aux_out), dim=1)
+        elif self.use_sensor:
+            act_input = torch.cat((classif_state_net, x[1]), dim=1)          # append sensor data
+        else:
+            act_input = classif_state_net
+
+        if self.use_hlcmd:
+            act_input = self.fc_action_base(act_input)
+            act_out = []
+            for cmd in range(1,5):
+                ind = torch.where(x[1][:,0]==cmd)
+                act_inp = act_input[ind]
+
+                # forward pass
+                if cmd == 1:
+                    act_out.append(self.fc_action1(act_inp))
+                elif cmd == 2:
+                    act_out.append(self.fc_action2(act_inp))
+                elif cmd == 3:
+                    act_out.append(self.fc_action3(act_inp))
+                elif cmd == 4:
+                    act_out.append(self.fc_action4(act_inp))    
+            act = torch.cat(act_out)
+        else:
+            act = self.fc_action(act_input)
+        
+        return act
+
+
     def forward(self, x):
 
         with torch.no_grad():
@@ -285,36 +324,7 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
             dist_to_frontcar = self.fc2_dist_to_frontcar(dist_to_frontcar)
 
         if self.action:
-            if self.use_sensor and self.use_aux:
-                aux_out = torch.cat((tl_state_output, dist_to_tl_output, dist_to_frontcar), dim=1)
-                act_input = torch.cat((aux_out, x[1]), dim=1)               # append sensor data
-                act_input = torch.cat((classif_state_net, act_input), dim=1)
-            elif self.use_aux:
-                aux_out = torch.cat((tl_state_output, dist_to_tl_output, dist_to_frontcar), dim=1)
-                act_input = torch.cat((classif_state_net, aux_out), dim=1)
-            elif self.use_sensor:
-                act_input = torch.cat((classif_state_net, x[1]), dim=1)          # append sensor data
-            else:
-                act_input = classif_state_net
+            self.forwardAction(classif_state_net, x, tl_state_output, dist_to_tl_output, dist_to_frontcar)
 
-            if self.use_hlcmd:
-                act_input = self.fc_action_base(act_input)
-                act_out = []
-                for cmd in range(1,5):
-                    ind = torch.where(x[1][:,0]==cmd)
-                    act_inp = act_input[ind]
-
-                    # forward pass
-                    if cmd == 1:
-                        act_out.append(self.fc_action1(act_inp))
-                    elif cmd == 2:
-                        act_out.append(self.fc_action2(act_inp))
-                    elif cmd == 3:
-                        act_out.append(self.fc_action3(act_inp))
-                    elif cmd == 4:
-                        act_out.append(self.fc_action4(act_inp))    
-                act = torch.cat(act_out)
-            else:
-                act = self.fc_action(act_input)
 
         return out_seg, tl_state_output, dist_to_tl_output, dist_to_frontcar, act

@@ -56,6 +56,9 @@ class Model_Segmentation_Traffic_Light_Supervised_RNN(nn.Module):
         if self.dist_car:
             self.fc1_dist_to_frontcar = autoencoder.fc1_dist_to_frontcar
             self.fc2_dist_to_frontcar = autoencoder.fc2_dist_to_frontcar
+        
+        if self.action:
+            self.forwardAction = autoencoder.forwardAction
 
         ####################################################
         ### The RNN
@@ -124,16 +127,6 @@ class Model_Segmentation_Traffic_Light_Supervised_RNN(nn.Module):
         Returns:
             [type]: latent vector from the encoder before the rnn. shape: (batch, seq, hidden)
         """        
-        seq_len = 4 
-        # rnn_input = []
-        # for i in range(seq_len):
-        #     # Get encoding First
-        #     encoding = self.encoder(x[i][0])  # 512*4*4 or 512*4*3 (crop sky)
-        #     encoding = self.last_conv_downsample(encoding)
-        #     classif_state_net = encoding.view(-1, self.size_state_RL)  # (batch, latent_size)
-        #     rnn_input.append(classif_state_net)
-        # rnn_input = torch.cat((rnn_input))
-
         batch_sz, seq_len, num_ch, h, w = x[0].shape[0], x[0].shape[1], x[0].shape[2], x[0].shape[3], x[0].shape[4] 
 
         encoder_input = x[0].contiguous().view(batch_sz*seq_len, num_ch, h, w)
@@ -234,5 +227,7 @@ class Model_Segmentation_Traffic_Light_Supervised_RNN(nn.Module):
         ##################################
         ### action
         act = None
+        # act_latent = torch.cat((rnn_input[:,-2,...], h_out[:,-1,...]))  # l_t and h_t
+        # act = self.forwardAction(act_latent, x, tl_state_output, dist_to_tl_output, dist_to_frontcar)
 
         return out_seg, tl_state_output, dist_to_tl_output, dist_to_frontcar, act, rnn_input, rnn_out

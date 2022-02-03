@@ -179,10 +179,11 @@ class SequentialTorchDataset(Dataset):
             files = self.image_files[modality][index-1:index] 
             images = imread(files[0])                         # single image
         elif mode == 'multiple':
-            files = self.image_files[modality][index - self.hparams['frame_skip']:index]            # no frame skipping
+            files = self.image_files[modality][index - self.hparams['frame_include']:index]  # no frame skipping
             images = imread_collection(files).concatenate()   # stack of images
         elif mode == 'multiple_frameskip':
-            files = self.image_files[modality][index - 3*self.hparams['frame_skip']:index:3]        # Frame skipping (3)
+            frameskip = self.hparams['frame_skip']
+            files = self.image_files[modality][index - frameskip*self.hparams['frame_include']:index:frameskip] # Frame skipping
             images = imread_collection(files).concatenate()
 
         images = np.moveaxis(images, -1,-3)                 # need [ch,height,width] or [num_imgs,ch,height,width]
@@ -221,17 +222,18 @@ class SequentialTorchDataset(Dataset):
             y = self.y[index].squeeze(0)
             sensor = self.sensor_data[index].squeeze(0)
         elif mode == 'multiple':
-            y = self.y[index - self.hparams['frame_skip']:index].squeeze(1)          
-            sensor = self.sensor_data[index - self.hparams['frame_skip']:index].squeeze(1) 
+            y = self.y[index - self.hparams['frame_include']:index].squeeze(1)          
+            sensor = self.sensor_data[index - self.hparams['frame_include']:index].squeeze(1) 
         elif mode == 'multiple_frameskip':
-            y = self.y[index - 3*self.hparams['frame_skip']:index:3].squeeze(1)
-            sensor = self.sensor_data[index - 3*self.hparams['frame_skip']:index:3].squeeze(1)
+            frameskip = self.hparams['frame_skip']
+            y = self.y[index - frameskip*self.hparams['frame_include']:index:frameskip].squeeze(1)
+            sensor = self.sensor_data[index - 3*self.hparams['frame_include']:index:3].squeeze(1)
 
         return y, sensor
 
     def __getitem__(self, index):
-        if(index < 12): # to handle frame skipping
-            index = index+12
+        if(index < self.hparams['frame_include']*self.hparams['frame_skip']): # to handle frame skipping
+            index = index +  self.hparams['frame_include']*self.hparams['frame_skip']
     
         # Load the image
         x = self._load_file(index, mode=self.hparams['loading_mode'])
@@ -252,7 +254,7 @@ class SequentialTorchDataset(Dataset):
         return x, y
 
     def __len__(self):
-        return len(self.image_files['camera']) - self.hparams['frame_skip']
+        return len(self.image_files['camera']) - self.hparams['frame_include']
 
 
 def sequential_train_val_test_iterator(hparams, modes=['train', 'val', 'test']):
