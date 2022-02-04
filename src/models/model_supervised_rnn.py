@@ -62,7 +62,6 @@ class Model_Segmentation_Traffic_Light_Supervised_RNN(nn.Module):
 
         ####################################################
         ### The RNN
-        self.device = torch.device('cuda:0')
         self.hidden_size = 1024
         self.rnn = nn.GRU(input_size=self.hidden_size, hidden_size=self.hidden_size, num_layers=1, batch_first=True)
         numparams = sum(p.numel() for p in self.rnn.parameters() if p.requires_grad)
@@ -193,12 +192,14 @@ class Model_Segmentation_Traffic_Light_Supervised_RNN(nn.Module):
 
     def forward(self, x):
         """[summary]
+        NOTE: Please do the following:
+            -remove no_grad() and uncomment when training a particular sub-module.
 
         Args:
-            x (list of list of Tensors): input to the network. shape (modality, (batch, seqlen ...)))
+            x (list of Tensors): input to the network. shape (modality, (batch, seqlen, ...)))
 
         Returns:
-            [type]: [description]
+            [Tensors]: Different prediction of the network
         """
         batch_sz = x[0].shape[0]
 
@@ -206,9 +207,9 @@ class Model_Segmentation_Traffic_Light_Supervised_RNN(nn.Module):
         with torch.no_grad():  # if frozen CNN
             rnn_input = self.encodetoRNNInput(x)
         
-        ### feed latent up to the last t-step to the RNN (t_final used for ground-truth loss calc.)
-        h_0 = torch.zeros(1, batch_sz, self.hidden_size).to(self.device)
-        rnn_out, h_out = self.rnn(rnn_input[:,:-1,...], h_0)       # (batch, seq-1, hidden) - skip last time-step
+            ### feed latent up to the last t-step to the RNN (t_final used for ground-truth loss calc.)
+            h_0 = torch.zeros(1, batch_sz, self.hidden_size).to(rnn_input.device)
+            rnn_out, h_out = self.rnn(rnn_input[:,:-1,...], h_0)       # (batch, seq-1, hidden) - skip last time-step
 
         ##################################
         ### Post RNN
@@ -227,7 +228,8 @@ class Model_Segmentation_Traffic_Light_Supervised_RNN(nn.Module):
         ##################################
         ### action
         act = None
-        # act_latent = torch.cat((rnn_input[:,-2,...], h_out[:,-1,...]))  # l_t and h_t
-        # act = self.forwardAction(act_latent, x, tl_state_output, dist_to_tl_output, dist_to_frontcar)
+        act_latent = torch.cat((rnn_input[:,-2,...], h_out.squeeze(0)), dim=1)  # l_t and h_t (at timestep t)
+        x[1] = x[1][:,-1,...]                                                   # last time-step for sensor
+        act = self.forwardAction(act_latent, x, tl_state_output, dist_to_tl_output, dist_to_frontcar)
 
         return out_seg, tl_state_output, dist_to_tl_output, dist_to_frontcar, act, rnn_input, rnn_out

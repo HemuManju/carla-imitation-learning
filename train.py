@@ -59,7 +59,8 @@ with skip_run('run', 'aux-adv') as check, check():
 
     # Load the parameters
     hparams = compose(config_name="config", overrides=['model=imitation'])
-    ckpt_paths = ['logs/all_aux_supervised/imitation-epoch=11-val_loss=0.58-train_loss=0.42.ckpt']
+    ckpt_paths = ['logs/all_aux_supervised/imitation-epoch=11-val_loss=0.58-train_loss=0.42.ckpt']          # encoder
+    ckpt_paths = ['logs/supervised_rnn_all_aux_latentonly_3frameskip/imitation-epoch=20-val_loss=0.12-train_loss=0.05.ckpt']  # rnn
     
     for ckpt_path in ckpt_paths:
 
@@ -80,13 +81,19 @@ with skip_run('run', 'aux-adv') as check, check():
 
         ### create the AE net
         net_ae = Model_Segmentation_Traffic_Light_Supervised(hparams)
+        net_ae.to('cuda:0')   # for calling forwardAction() from the rnn_net
+        
         # if want to load weights
         selected_subnets = ['fc_action']
-        net_ae.loadWeights(ckpt_path=ckpt_path, selected_subnet=selected_subnets, exclude_mode=True)
-        net_ae.freezeLayers(selected_subnet=selected_subnets, exclude_mode=True)
-        
+        # net_ae.loadWeights(ckpt_path=ckpt_path, selected_subnet=selected_subnets, exclude_mode=True)
+        # net_ae.freezeLayers(selected_subnet=selected_subnets, exclude_mode=True)
+        # net = net_ae
+
         ### create the RNN net from AE
         net = Model_Segmentation_Traffic_Light_Supervised_RNN(hparams, net_ae)
+        net.loadWeights(ckpt_path=ckpt_path, selected_subnet=selected_subnets, exclude_mode=True)
+        net.freezeLayers(selected_subnet=selected_subnets, exclude_mode=True)
+        
         
         # output = net(net.example_input_array)
         # print(output)  # verification

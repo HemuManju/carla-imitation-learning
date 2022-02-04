@@ -16,8 +16,8 @@ VALID_SIZE: 0.15
 ### data loading paramters
 gray_scale: False
 crop_sky: True
-loading_mode: 'multiple' #'single'                     # single, multiple or multiple_frameskip
-modalities: ['camera', 'semantic_label']                     # 'camera' must exist
+loading_mode: 'multiple_frameskip' #'single'                     # single, multiple or multiple_frameskip
+modalities: ['camera'] #['camera', 'semantic_label']                     # 'camera' must exist
 data_augmentation: False
 
 ### Network Parameters
@@ -33,10 +33,10 @@ semseg: False
 traffic_status: False
 traffic_dist: False
 dist_car: False
-action: False #True
+action: True
 
-use_sensor: True
-use_aux: True #False
+use_sensor: False
+use_aux: False
 use_hlcmd: False #True
 
 

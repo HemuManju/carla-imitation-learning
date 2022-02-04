@@ -21,14 +21,14 @@ def lossRNNCriterion(obj, inp, out, validation=False):
     # model output: out_seg, tl_state_output, dist_to_tl_output, dist_to_frontcar, act, rnn_input, rnn_out
 
     ### latent losses
-    losses['latent'] = nn.functional.smooth_l1_loss(inp[6], inp[5][:,1:,...])  # latent loss
+    # losses['latent'] = nn.functional.smooth_l1_loss(inp[6], inp[5][:,1:,...])  # latent loss
 
     ### classification
     # losses['image_r'] = 1 - ms_ssim(inp[0], out[0][0], data_range=1, size_average=True)   # image reconstruction
     # losses['semantic'] = nn.functional.cross_entropy(inp[0], out[0][2])                   # pixel-wise semantic segmentation
 
     ### Class balanced
-    # losses['act'] = nn.functional.cross_entropy(inp[4], out[1][:,1], obj.cb_weight['act'])   # Autopilot Action
+    losses['act'] = nn.functional.cross_entropy(inp[4], out[1][:,-1,1], obj.cb_weight['act'])   # Autopilot Action
     # losses['tr_status'] = nn.functional.cross_entropy(inp[1], out[1][:,0], obj.cb_weight['tr_status'])  # trafficlight status detection
     # losses['tr_dist'] = nn.functional.cross_entropy(inp[2], out[1][:,2], obj.cb_weight['tr_dist'])      # dist to traffic light
     # losses['car_dist'] = nn.functional.cross_entropy(inp[3], out[1][:,3], obj.cb_weight['car_dist'])    # dist to front car

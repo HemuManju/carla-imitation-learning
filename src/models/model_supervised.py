@@ -92,7 +92,6 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
         nb_class_segmentation = hparams['nb_class_segmentation']
 
 
-
         ### to adapt to the number of input
         # if nb_images_input != 1:
         # new_conv1 = nn.Conv2d(
@@ -157,7 +156,7 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
             num_actions = 20
             if not self.use_hlcmd:
                 self.fc_action = nn.Sequential(
-                    nn.Linear(self.size_state_RL + aux_len + sensor_len, hidden_size),
+                    nn.Linear(2 * self.size_state_RL + aux_len + sensor_len, hidden_size),  # 2X size for RNN encoding
                     nn.LeakyReLU(),
                     nn.Linear(hidden_size, int(hidden_size/2)),
                     nn.LeakyReLU(),
@@ -245,6 +244,7 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
      dist_to_tl_output=None, dist_to_frontcar=None):
         '''Forwad through the action network
         '''
+
         if self.use_sensor and self.use_aux:
             aux_out = torch.cat((tl_state_output, dist_to_tl_output, dist_to_frontcar), dim=1)
             act_input = torch.cat((aux_out, x[1]), dim=1)               # append sensor data
@@ -281,6 +281,17 @@ class Model_Segmentation_Traffic_Light_Supervised(nn.Module):
 
 
     def forward(self, x):
+        """[summary]
+        NOTE: Please do the following:
+            -remove no_grad() when training a particular sub-module.
+            -change action network sizes to appropirate if this is a part of RNN AE.
+
+        Args:
+            x (list of Tensors): input to the network. shape (modality, (batch, ...)))
+
+        Returns:
+            [Tensors]: Different prediction of the network
+        """        
 
         with torch.no_grad():
             # Encoder first, resnet18 without last fc and abg pooling
