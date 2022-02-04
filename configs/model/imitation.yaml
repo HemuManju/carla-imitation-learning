@@ -5,7 +5,7 @@
 # Training parameters
 NUM_EPOCHS: 25
 BATCH_SIZE: 32
-NUM_WORKERS: 10
+NUM_WORKERS: 8
 LEARNING_RATE: 0.0001
 WEIGHT_DECAY: 0 #1e-6
 DROP_OUT: 0.20
@@ -35,7 +35,7 @@ traffic_dist: False
 dist_car: False
 action: True
 
-use_sensor: False
+use_sensor: True
 use_aux: False
 use_hlcmd: False #True
 

@@ -81,7 +81,6 @@ with skip_run('run', 'aux-adv') as check, check():
 
         ### create the AE net
         net_ae = Model_Segmentation_Traffic_Light_Supervised(hparams)
-        net_ae.to('cuda:0')   # for calling forwardAction() from the rnn_net
         
         # if want to load weights
         selected_subnets = ['fc_action']
