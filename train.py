@@ -12,13 +12,13 @@ import matplotlib.pyplot as plt
 
 from src.data.stats import classification_accuracy
 
-from src.dataset import vae_dataset, imitation_dataset
+from src.dataset import vae_dataset, imitation_dataset, warmstart_dataset
 
 from src.architectures import layer_config
-from src.architectures.nets import CNNAutoEncoder, ConvNet1, ConvNetRawSegment
+from src.architectures.nets import CNNAutoEncoder, ConvNet1, CIRLBasePolicy
 
 from src.models.vae import VAE
-from src.models.imitation import Imitation
+from src.models.imitation import Imitation, WarmStart
 
 from src.visualization.visualize import show_grid, plot_trends
 
@@ -40,7 +40,8 @@ with skip_run('skip', 'vae_training') as check, check():
         dirpath=cfg['logs_path'],
         save_top_k=1,
         filename='vae',
-        mode='min')
+        mode='min',
+    )
     logger = pl.loggers.TensorBoardLogger(cfg['logs_path'], name='vae')
 
     # Setup the network
@@ -54,14 +55,15 @@ with skip_run('skip', 'vae_training') as check, check():
     # Setup the model and run
     model = VAE(cfg, net, data_loader)
     # Early stopping
-    early_stop_callback = EarlyStopping(monitor="val_loss",
-                                        patience=20,
-                                        verbose=False,
-                                        mode="min")
-    trainer = pl.Trainer(gpus=gpus,
-                         max_epochs=cfg['NUM_EPOCHS'],
-                         logger=logger,
-                         callbacks=[checkpoint_callback, early_stop_callback])
+    early_stop_callback = EarlyStopping(
+        monitor="val_loss", patience=20, verbose=False, mode="min"
+    )
+    trainer = pl.Trainer(
+        gpus=gpus,
+        max_epochs=cfg['NUM_EPOCHS'],
+        logger=logger,
+        callbacks=[checkpoint_callback, early_stop_callback],
+    )
     trainer.fit(model)
 
 with skip_run('skip', 'vae_inference') as check, check():
@@ -78,10 +80,9 @@ with skip_run('skip', 'vae_inference') as check, check():
     cfg['decoder_config'] = layer_config.layers_decoder_256_128
     net = CNNAutoEncoder(cfg)
     check_point_path = 'logs/2021-11-10/vae.ckpt'
-    model = VAE.load_from_checkpoint(check_point_path,
-                                     hparams=cfg,
-                                     net=net,
-                                     data_loader=None)
+    model = VAE.load_from_checkpoint(
+        check_point_path, hparams=cfg, net=net, data_loader=None
+    )
     model = model.to("cuda")
     model.eval()
     model.freeze()
@@ -116,7 +117,8 @@ with skip_run('skip', 'behavior_cloning') as check, check():
             dirpath=cfg.log_dir,
             save_top_k=1,
             filename='imitation',
-            mode='min')
+            mode='min',
+        )
         logger = pl.loggers.TensorBoardLogger(cfg.log_dir, name='imitation')
 
         # Setup
@@ -126,45 +128,48 @@ with skip_run('skip', 'behavior_cloning') as check, check():
         print(actions)  # verification
         data_loader = imitation_dataset.sequential_train_val_test_iterator(cfg)
         model = Imitation(cfg, net, data_loader)
-        trainer = pl.Trainer(gpus=gpus,
-                             max_epochs=cfg.NUM_EPOCHS,
-                             logger=logger,
-                             callbacks=[checkpoint_callback])
+        trainer = pl.Trainer(
+            gpus=gpus,
+            max_epochs=cfg.NUM_EPOCHS,
+            logger=logger,
+            callbacks=[checkpoint_callback],
+        )
         trainer.fit(model)
 
-with skip_run('skip', 'behavior_cloning_with_raw_segmented') as check, check():
-    # Load the parameters
-    cfg = yaml.load(open('configs/imitation.yaml'), Loader=yaml.SafeLoader)
+with skip_run('skip', 'warm_starting') as check, check():
+    # Load the configuration
+    cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
+    cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
 
-    camera_type = ['camera', 'semantic']
-    for camera in camera_type:
-        cfg['camera'] = camera
+    # Random seed
+    gpus = get_num_gpus()
+    torch.manual_seed(cfg['pytorch_seed'])
 
-        # Random seed
-        gpus = get_num_gpus()
-        torch.manual_seed(cfg.pytorch_seed)
+    # Checkpoint
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(
+        monitor='val_loss',
+        dirpath=cfg['logs_path'],
+        save_top_k=1,
+        filename='warm_start',
+        mode='min',
+    )
+    logger = pl.loggers.TensorBoardLogger(cfg['logs_path'], name='warm_start')
 
-        # Checkpoint
-        checkpoint_callback = pl.callbacks.ModelCheckpoint(
-            monitor='val_loss',
-            dirpath=cfg.log_dir,
-            save_top_k=1,
-            filename='imitation',
-            mode='min')
-        logger = pl.loggers.TensorBoardLogger(cfg.log_dir, name='imitation')
+    # Setup
+    net = CIRLBasePolicy(cfg)
+    # actions = net(net.example_input_array, net.example_command)
+    # print(actions.shape)  # verification
 
-        # Setup
-        cfg['train_logs'] = ['Log1']
-        net = ConvNetRawSegment(cfg)
-        actions = net(net.example_input_array)
-        print(actions)  # verification
-        data_loader = imitation_dataset.sequential_train_val_test_iterator(cfg)
-        model = Imitation(cfg, net, data_loader)
-        trainer = pl.Trainer(gpus=gpus,
-                             max_epochs=cfg.NUM_EPOCHS,
-                             logger=logger,
-                             callbacks=[checkpoint_callback])
-        trainer.fit(model)
+    # Dataloader
+    data_loader = warmstart_dataset.webdataset_data_iterator(cfg)
+    model = WarmStart(cfg, net, data_loader)
+    trainer = pl.Trainer(
+        gpus=gpus,
+        max_epochs=cfg['NUM_EPOCHS'],
+        logger=logger,
+        callbacks=[checkpoint_callback],
+    )
+    trainer.fit(model)
 
 with skip_run('skip', 'algorithm_stats') as check, check():
     cfg = yaml.load(open('configs/vae.yaml'), Loader=yaml.SafeLoader)
@@ -181,11 +186,14 @@ with skip_run('skip', 'figure_plotting') as check, check():
     paths = [
         'data/processed/1632282330_log.txt',
         'data/processed/1633690232_log.txt',
-        'data/processed/1633690363_log.txt'
+        'data/processed/1633690363_log.txt',
     ]
     legends = [
-        'Train (Simple)', 'Validation (Simple)', 'Train (Lat. att.)',
-        'Validation (Lat. att.)', 'Train (Conv. att.)',
-        'Validation (Conv. att.)'
+        'Train (Simple)',
+        'Validation (Simple)',
+        'Train (Lat. att.)',
+        'Validation (Lat. att.)',
+        'Train (Conv. att.)',
+        'Validation (Conv. att.)',
     ]
     plot_trends(paths, legends)

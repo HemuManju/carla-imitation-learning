@@ -23,8 +23,9 @@ class DynamicVAE(pl.LightningModule):
         x_out, mu, log_sigma = self.forward(x)
 
         # KL divergence loss
-        kl_loss = -0.5 * torch.sum(1 + 2 * log_sigma - mu.pow(2) -
-                                   (2 * log_sigma).exp())
+        kl_loss = -0.5 * torch.sum(
+            1 + 2 * log_sigma - mu.pow(2) - (2 * log_sigma).exp()
+        )
 
         # Reconstruction loss
         recon_loss_criterion = nn.MSELoss(reduction='sum')
@@ -43,8 +44,9 @@ class DynamicVAE(pl.LightningModule):
         x_out, mu, log_sigma = self.forward(x)
 
         # Loss
-        kl_loss = -0.5 * torch.sum(1 + 2 * log_sigma - mu.pow(2) -
-                                   (2 * log_sigma).exp())
+        kl_loss = -0.5 * torch.sum(
+            1 + 2 * log_sigma - mu.pow(2) - (2 * log_sigma).exp()
+        )
 
         # Reconstruction loss
         recon_loss_criterion = nn.MSELoss(reduction='sum')

@@ -22,6 +22,7 @@ class TorchDataset(Dataset):
     split_ids
 
     """
+
     def __init__(self, images):
         super(TorchDataset, self).__init__()
         self.images = images
@@ -50,8 +51,7 @@ class VAETorchDataset(Dataset):
         # Compose transforms
         self.transform = transforms.ToTensor()
 
-        self.image_files, json_files = get_image_json_files(
-            read_path=read_path)
+        self.image_files, json_files = get_image_json_files(read_path=read_path)
 
     def __getitem__(self, index):
         """Get single image."""
@@ -74,8 +74,7 @@ class SeqVAETorchDataset(Dataset):
         # Compose transforms
         self.transform = transforms.ToTensor()
 
-        self.image_files, json_files = get_image_json_files(
-            read_path=read_path)
+        self.image_files, json_files = get_image_json_files(read_path=read_path)
 
     def __getitem__(self, index):
         """Get single image."""
@@ -109,19 +108,18 @@ def train_val_test_iterator(config, dataset_type='individual'):
     # Create train, validation, test datasets and save them in a dictionary
     data_iterator = {}
     train_data = dataset[dataset_type](read_path=config['train_data_path'])
-    data_iterator['train_data_loader'] = DataLoader(train_data,
-                                                    batch_size=BATCH_SIZE,
-                                                    shuffle=True,
-                                                    num_workers=4)
+    data_iterator['train_data_loader'] = DataLoader(
+        train_data, batch_size=BATCH_SIZE, shuffle=True, num_workers=4
+    )
 
     valid_data = dataset[dataset_type](read_path=config['val_data_path'])
-    data_iterator['val_data_loader'] = DataLoader(valid_data,
-                                                  batch_size=BATCH_SIZE,
-                                                  num_workers=4)
+    data_iterator['val_data_loader'] = DataLoader(
+        valid_data, batch_size=BATCH_SIZE, num_workers=4
+    )
 
     test_data = dataset[dataset_type](read_path=config['test_data_path'])
-    data_iterator['test_data_loader'] = DataLoader(test_data,
-                                                   batch_size=BATCH_SIZE,
-                                                   num_workers=4)
+    data_iterator['test_data_loader'] = DataLoader(
+        test_data, batch_size=BATCH_SIZE, num_workers=4
+    )
 
     return data_iterator

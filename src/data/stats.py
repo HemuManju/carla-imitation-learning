@@ -38,8 +38,7 @@ def classification_accuracy(model, data_iterator, key=None):
             for x, y in data_iterator[key]:
                 out_put = model(x.to(device))
                 out_put = out_put.cpu().detach()
-                total += (out_put.argmax(dim=1) == y.argmax(
-                    dim=1)).float().sum()
+                total += (out_put.argmax(dim=1) == y.argmax(dim=1)).float().sum()
                 length += len(y)
             accuracy[key] = (total / length).numpy()
     return accuracy

@@ -12,3 +12,8 @@ def build_model(layer_config):
         module = getattr(torch.nn, layer_type)(**layer)
         modules.append(module)
     return nn.Sequential(*modules)
+
+
+class Flatten(nn.Module):
+    def forward(self, x):
+        return x.reshape(x.size(0), -1)
