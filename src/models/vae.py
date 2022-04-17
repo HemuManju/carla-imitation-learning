@@ -34,7 +34,7 @@ class VAE(pl.LightningModule):
         # Total loss
         loss = self.cfg['alpha'] * recon_loss + self.cfg['beta'] * kl_loss
 
-        self.log('train_loss', loss, on_step=False, on_epoch=True)
+        self.log('losses/train_loss', loss, on_step=False, on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -56,7 +56,7 @@ class VAE(pl.LightningModule):
 
         self.log('val_kl_loss', kl_loss, on_step=False, on_epoch=True)
         self.log('val_recon_loss', recon_loss, on_step=False, on_epoch=True)
-        self.log('val_loss', loss, on_step=False, on_epoch=True)
+        self.log('losses/val_loss', loss, on_step=False, on_epoch=True)
         return x_out, loss
 
     def train_dataloader(self):

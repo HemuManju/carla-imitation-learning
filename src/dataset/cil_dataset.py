@@ -52,7 +52,7 @@ class CarlaH5Dataset(Dataset):
         self.build_transform()
 
     def build_transform(self):
-        if self.train_eval_flag == "train":
+        if self.train_eval_flag == "test":
             self.transform = transforms.Compose(
                 [
                     transforms.RandomOrder(

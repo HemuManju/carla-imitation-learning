@@ -25,7 +25,7 @@ class Imitation(pl.LightningModule):
 
         loss = criterion(output, y)
 
-        self.log('train_loss', loss, on_step=False, on_epoch=True)
+        self.log('losses/train_loss', loss, on_step=False, on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -36,7 +36,7 @@ class Imitation(pl.LightningModule):
         criterion = nn.CrossEntropyLoss()
         loss = criterion(output, y)
 
-        self.log('val_loss', loss, on_step=False, on_epoch=True)
+        self.log('losses/val_loss', loss, on_step=False, on_epoch=True)
         return loss
 
     def train_dataloader(self):
@@ -54,7 +54,7 @@ class Imitation(pl.LightningModule):
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": ReduceLROnPlateau(optimizer),
-                "monitor": 'val_loss',
+                "monitor": 'val_checkpoint_on',
             },
         }
         return opt
@@ -99,7 +99,7 @@ class ConditionalImitation(pl.LightningModule):
         branches_out, pred_speed = self.forward(img, speed)
         loss = self.calculate_loss(branches_out, mask, target, pred_speed, speed)
 
-        self.log('train_loss', loss, on_step=False, on_epoch=True)
+        self.log('losses/train_loss', loss, on_step=False, on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -109,7 +109,7 @@ class ConditionalImitation(pl.LightningModule):
         branches_out, pred_speed = self.forward(img, speed)
         loss = self.calculate_loss(branches_out, mask, target, pred_speed, speed)
 
-        self.log('val_loss', loss, on_step=False, on_epoch=True)
+        self.log('losses/val_loss', loss, on_step=False, on_epoch=True)
         return loss
 
     def train_dataloader(self):
@@ -120,14 +120,17 @@ class ConditionalImitation(pl.LightningModule):
 
     def configure_optimizers(self):
         optimizer = Adam(self.parameters(), lr=self.h_params['LEARNING_RATE'])
-        opt = {
-            "optimizer": optimizer,
-            "lr_scheduler": {
-                "scheduler": ReduceLROnPlateau(optimizer),
-                "monitor": 'val_loss',
-            },
+        lr_scheduler = ReduceLROnPlateau(
+            optimizer, patience=10, factor=0.9, verbose=True
+        )
+
+        scheduler = {
+            'scheduler': lr_scheduler,
+            'reduce_on_plateau': True,
+            # val_checkpoint_on is val_loss passed in as checkpoint_on
+            'monitor': 'losses/val_loss',
         }
-        return opt
+        return [optimizer]
 
     def scale_image(self, img):
         out = (img + 1) / 2
@@ -154,7 +157,7 @@ class WarmStart(pl.LightningModule):
 
         loss = criterion(output, action)
 
-        self.log('train_loss', loss, on_step=False, on_epoch=True)
+        self.log('losses/train_loss', loss, on_step=False, on_epoch=True)
         return loss
 
     def validation_step(self, batch, batch_idx):
@@ -165,7 +168,7 @@ class WarmStart(pl.LightningModule):
         criterion = nn.MSELoss()
         loss = criterion(output, action)
 
-        self.log('val_loss', loss, on_step=False, on_epoch=True)
+        self.log('losses/val_loss', loss, on_step=False, on_epoch=True)
         return loss
 
     def train_dataloader(self):
@@ -180,7 +183,7 @@ class WarmStart(pl.LightningModule):
             "optimizer": optimizer,
             "lr_scheduler": {
                 "scheduler": ReduceLROnPlateau(optimizer),
-                "monitor": 'val_loss',
+                "monitor": 'losses/val_loss',
             },
         }
         return opt

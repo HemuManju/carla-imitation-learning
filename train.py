@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 
 import pandas as pd
 
@@ -36,13 +36,18 @@ with skip_run('skip', 'conditional_imitation_learning') as check, check():
 
     # Checkpoint
     checkpoint_callback = pl.callbacks.ModelCheckpoint(
-        monitor='val_loss',
-        dirpath=cfg['logs_path'],
+        monitor='losses/val_loss',
+        dirpath=cfg['logs_path'] + f'/logs/time_{datetime.now().strftime("%H_%M_%S")}',
         save_top_k=1,
-        filename='cond_imitation',
+        filename='{epoch}-{val_loss:.4f}-{train_loss:.4f}',
         mode='min',
+        save_last=True,
     )
-    logger = pl.loggers.TensorBoardLogger(cfg['logs_path'], name='cond_imitation')
+    logger = pl.loggers.TensorBoardLogger(
+        cfg['logs_path'],
+        name='logs',
+        version=f'time_{datetime.now().strftime("%H_%M_%S")}',
+    )
 
     # Dataset
     carla_data = CarlaH5Data(
@@ -54,14 +59,23 @@ with skip_run('skip', 'conditional_imitation_learning') as check, check():
 
     # Neural network
     net = CarlaNet()
-
     model = ConditionalImitation(cfg, net, carla_data)
-    trainer = pl.Trainer(
-        gpus=gpus,
-        max_epochs=cfg['NUM_EPOCHS'],
-        logger=logger,
-        callbacks=[checkpoint_callback],
-    )
+
+    if cfg['check_point_path'] is None:
+        trainer = pl.Trainer(
+            gpus=gpus,
+            max_epochs=cfg['NUM_EPOCHS'],
+            logger=logger,
+            callbacks=[checkpoint_callback],
+        )
+    else:
+        trainer = pl.Trainer(
+            gpus=gpus,
+            max_epochs=cfg['NUM_EPOCHS'],
+            logger=logger,
+            callbacks=[checkpoint_callback],
+            resume_from_checkpoint=cfg['check_point_path'],
+        )
     trainer.fit(model)
 
 with skip_run('skip', 'algorithm_stats') as check, check():

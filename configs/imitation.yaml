@@ -1,22 +1,26 @@
 ##-----------------------------------------------------#
 # Training parameters
-NUM_EPOCHS: 50
+NUM_EPOCHS: 10
 BATCH_SIZE: 64
 LEARNING_RATE: 0.0001
 DROP_OUT: 0.20
 TEST_SIZE: 0.15
 VALID_SIZE: 0.15
 
+##-----------------------------------------------------#
+# Data Parameters
 obs_size: 4
 n_actions: 3
 frame_skip: 4
 branch_weight: 1
 speed_weight: 1
+number_workers: 8
 
+##-----------------------------------------------------#
+# Other parameters
 image_size: [1, 224, 224]
 alpha: 0.75
 beta: 0.1
-number_workers: 8
 
 ##-----------------------------------------------------#
 # Path(s)
@@ -27,5 +31,7 @@ raw_data_path: 'data/raw'
 train_data_path: 'data/raw/train'
 val_data_path: 'data/raw/validation'
 test_data_path: 'data/raw/test'
+
+check_point_path: null # 'logs/2022-04-17/COND_IMITATION/logs/time_13_38_22/last.ckpt'
 
 pytorch_seed: 1337
