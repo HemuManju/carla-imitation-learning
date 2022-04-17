@@ -1,23 +1,31 @@
-# @package _global_
-
-logs: ['Log1', 'Log2', 'Log3', 'Log4', 'Log5', 'Log6']
-camera: ['camera']
-
 ##-----------------------------------------------------#
 # Training parameters
 NUM_EPOCHS: 50
 BATCH_SIZE: 64
-LEARNING_RATE: 0.001
+LEARNING_RATE: 0.0001
 DROP_OUT: 0.20
 TEST_SIZE: 0.15
 VALID_SIZE: 0.15
 
 obs_size: 4
-n_actions: 9
+n_actions: 3
 frame_skip: 4
+branch_weight: 1
+speed_weight: 1
 
-train_logs: ['Log1']
-test_logs: ['Log2']
 image_size: [1, 224, 224]
 alpha: 0.75
 beta: 0.1
+number_workers: 8
+
+##-----------------------------------------------------#
+# Path(s)
+training_dataset: '/home/hemanth/Desktop/conditional_imitation/data/AgentHuman/SeqTrain/'
+validation_dataset: '/home/hemanth/Desktop/conditional_imitation/data/AgentHuman/SeqVal/'
+logs_path: 'logs/'
+raw_data_path: 'data/raw'
+train_data_path: 'data/raw/train'
+val_data_path: 'data/raw/validation'
+test_data_path: 'data/raw/test'
+
+pytorch_seed: 1337
