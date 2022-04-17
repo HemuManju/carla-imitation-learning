@@ -46,3 +46,12 @@ def plot_trends(paths, legends):
     plt.legend(legends)
     # plt.tight_layout()
     plt.show()
+
+
+def plot_frames(ax, array):
+    try:
+        for i in range(array.shape[0]):
+            ax[i].imshow(array[i, :, :], origin='lower')
+        plt.pause(0.01)
+    except KeyboardInterrupt:
+        print("\nshutdown by user")

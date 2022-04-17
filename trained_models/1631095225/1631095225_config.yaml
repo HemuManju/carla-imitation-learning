@@ -1,0 +1,1596 @@
+autoencoder: ''
+autoencoder_config:
+  layers_decoder:
+  - in_channels: 512
+    kernel_size: 3
+    out_channels: 256
+    output_padding: 1
+    padding: 0
+    stride: 2
+    type: ConvTranspose2d
+  - momentum: 0.1
+    num_features: 256
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 256
+    kernel_size: 3
+    out_channels: 256
+    padding: 1
+    stride: 1
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 256
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 256
+    kernel_size: 3
+    out_channels: 128
+    output_padding: 1
+    padding: 1
+    stride: 2
+    type: ConvTranspose2d
+  - momentum: 0.1
+    num_features: 128
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 128
+    kernel_size: 3
+    out_channels: 128
+    padding: 1
+    stride: 1
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 128
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 128
+    kernel_size: 3
+    out_channels: 64
+    output_padding: 1
+    padding: 1
+    stride: 2
+    type: ConvTranspose2d
+  - momentum: 0.1
+    num_features: 64
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 64
+    kernel_size: 3
+    out_channels: 64
+    padding: 1
+    stride: 1
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 64
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 64
+    kernel_size: 3
+    out_channels: 32
+    output_padding: 1
+    padding: 1
+    stride: 2
+    type: ConvTranspose2d
+  - momentum: 0.1
+    num_features: 32
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 32
+    kernel_size: 3
+    out_channels: 32
+    padding: 1
+    stride: 1
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 32
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 32
+    kernel_size: 3
+    out_channels: 16
+    output_padding: 1
+    padding: 1
+    stride: 2
+    type: ConvTranspose2d
+  - momentum: 0.1
+    num_features: 16
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 16
+    kernel_size: 3
+    out_channels: 16
+    padding: 1
+    stride: 1
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 16
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 16
+    kernel_size: 3
+    out_channels: 8
+    output_padding: 1
+    padding: 1
+    stride: 2
+    type: ConvTranspose2d
+  - momentum: 0.1
+    num_features: 8
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 8
+    kernel_size: 3
+    out_channels: 8
+    padding: 1
+    stride: 1
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 8
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 8
+    kernel_size: 3
+    out_channels: 1
+    output_padding: 1
+    padding: 1
+    stride: 2
+    type: ConvTranspose2d
+  - momentum: 0.1
+    num_features: 1
+    type: BatchNorm2d
+  - type: Sigmoid
+  layers_encoder:
+  - in_channels: 1
+    kernel_size: 3
+    out_channels: 8
+    padding: 1
+    stride: 2
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 8
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 8
+    kernel_size: 3
+    out_channels: 8
+    padding: 1
+    stride: 1
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 8
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 8
+    kernel_size: 3
+    out_channels: 16
+    padding: 1
+    stride: 2
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 16
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 16
+    kernel_size: 3
+    out_channels: 16
+    padding: 1
+    stride: 1
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 16
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 16
+    kernel_size: 3
+    out_channels: 32
+    padding: 1
+    stride: 2
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 32
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 32
+    kernel_size: 3
+    out_channels: 32
+    padding: 1
+    stride: 1
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 32
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 32
+    kernel_size: 3
+    out_channels: 64
+    padding: 1
+    stride: 2
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 64
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 64
+    kernel_size: 3
+    out_channels: 64
+    padding: 1
+    stride: 1
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 64
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 64
+    kernel_size: 3
+    out_channels: 128
+    padding: 1
+    stride: 2
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 128
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 128
+    kernel_size: 3
+    out_channels: 128
+    padding: 1
+    stride: 1
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 128
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 128
+    kernel_size: 3
+    out_channels: 256
+    padding: 1
+    stride: 2
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 256
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 256
+    kernel_size: 3
+    out_channels: 256
+    padding: 1
+    stride: 1
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 256
+    type: BatchNorm2d
+  - type: ReLU
+  - in_channels: 256
+    kernel_size: 3
+    out_channels: 512
+    padding: 0
+    stride: 2
+    type: Conv2d
+  - momentum: 0.1
+    num_features: 512
+    type: BatchNorm2d
+  - type: ReLU
+autoencoder_resume: results/1630751339/1630751339_model_epoch_74.pth
+batch_size: 32
+cameras:
+- camera
+- camera_b
+- camera_l
+- camera_r
+delta: 4
+device: cuda
+dropout: 0
+epochs: 20
+grayscale: true
+image_latent_size: 128
+last_image: false
+logs:
+- Log_633
+- Log_472
+- Log_646
+- Log_1268
+- Log_1067
+- Log_504
+- Log_38
+- Log_836
+- Log_1338
+- Log_162
+- Log_831
+- Log_551
+- Log_689
+- Log_701
+- Log_1077
+- Log_172
+- Log_635
+- Log_933
+- Log_1381
+- Log_664
+- Log_435
+- Log_1084
+- Log_1207
+- Log_1160
+- Log_148
+- Log_822
+- Log_1261
+- Log_829
+- Log_198
+- Log_973
+- Log_820
+- Log_352
+- Log_1483
+- Log_776
+- Log_165
+- Log_1406
+- Log_811
+- Log_698
+- Log_256
+- Log_921
+- Log_1011
+- Log_24
+- Log_349
+- Log_337
+- Log_1000
+- Log_284
+- Log_1300
+- Log_761
+- Log_363
+- Log_692
+- Log_76
+- Log_444
+- Log_1452
+- Log_4
+- Log_718
+- Log_576
+- Log_1471
+- Log_1059
+- Log_1322
+- Log_430
+- Log_1491
+- Log_394
+- Log_1423
+- Log_1465
+- Log_1403
+- Log_859
+- Log_1408
+- Log_865
+- Log_374
+- Log_639
+- Log_114
+- Log_1354
+- Log_738
+- Log_1343
+- Log_293
+- Log_756
+- Log_780
+- Log_661
+- Log_864
+- Log_1379
+- Log_537
+- Log_1462
+- Log_366
+- Log_914
+- Log_483
+- Log_1380
+- Log_1014
+- Log_1494
+- Log_97
+- Log_1321
+- Log_942
+- Log_975
+- Log_1053
+- Log_962
+- Log_759
+- Log_969
+- Log_589
+- Log_645
+- Log_259
+- Log_1091
+- Log_1393
+- Log_560
+- Log_140
+- Log_1002
+- Log_407
+- Log_550
+- Log_623
+- Log_650
+- Log_990
+- Log_943
+- Log_1195
+- Log_1449
+- Log_410
+- Log_268
+- Log_1086
+- Log_313
+- Log_391
+- Log_577
+- Log_730
+- Log_1405
+- Log_6
+- Log_1093
+- Log_402
+- Log_1397
+- Log_515
+- Log_283
+- Log_184
+- Log_1522
+- Log_895
+- Log_764
+- Log_115
+- Log_519
+- Log_331
+- Log_501
+- Log_207
+- Log_494
+- Log_754
+- Log_1214
+- Log_2
+- Log_970
+- Log_64
+- Log_1492
+- Log_878
+- Log_415
+- Log_1176
+- Log_978
+- Log_113
+- Log_1516
+- Log_241
+- Log_400
+- Log_88
+- Log_175
+- Log_636
+- Log_1363
+- Log_649
+- Log_107
+- Log_117
+- Log_1106
+- Log_139
+- Log_271
+- Log_1395
+- Log_732
+- Log_1194
+- Log_1216
+- Log_1309
+- Log_401
+- Log_773
+- Log_1307
+- Log_1269
+- Log_354
+- Log_333
+- Log_568
+- Log_1132
+- Log_329
+- Log_804
+- Log_802
+- Log_1419
+- Log_79
+- Log_159
+- Log_1075
+- Log_751
+- Log_632
+- Log_108
+- Log_60
+- Log_182
+- Log_1034
+- Log_830
+- Log_202
+- Log_462
+- Log_447
+- Log_798
+- Log_1416
+- Log_667
+- Log_281
+- Log_1201
+- Log_787
+- Log_1384
+- Log_784
+- Log_412
+- Log_1304
+- Log_44
+- Log_788
+- Log_1141
+- Log_143
+- Log_416
+- Log_236
+- Log_51
+- Log_610
+- Log_183
+- Log_199
+- Log_1372
+- Log_1253
+- Log_671
+- Log_526
+- Log_703
+- Log_768
+- Log_1135
+- Log_1374
+- Log_642
+- Log_821
+- Log_1329
+- Log_35
+- Log_69
+- Log_772
+- Log_1301
+- Log_67
+- Log_1151
+- Log_405
+- Log_470
+- Log_469
+- Log_584
+- Log_1218
+- Log_370
+- Log_1510
+- Log_1245
+- Log_926
+- Log_1212
+- Log_736
+- Log_637
+- Log_327
+- Log_1436
+- Log_861
+- Log_675
+- Log_36
+- Log_666
+- Log_1446
+- Log_1335
+- Log_790
+- Log_1024
+- Log_467
+- Log_1316
+- Log_1092
+- Log_1431
+- Log_525
+- Log_1155
+- Log_1144
+- Log_1048
+- Log_248
+- Log_544
+- Log_482
+- Log_1457
+- Log_913
+- Log_750
+- Log_558
+- Log_186
+- Log_1243
+- Log_1251
+- Log_694
+- Log_600
+- Log_1305
+- Log_1098
+- Log_1148
+- Log_357
+- Log_226
+- Log_1420
+- Log_574
+- Log_890
+- Log_799
+- Log_955
+- Log_487
+- Log_725
+- Log_508
+- Log_434
+- Log_704
+- Log_257
+- Log_1352
+- Log_875
+- Log_647
+- Log_1040
+- Log_570
+- Log_1116
+- Log_1184
+- Log_565
+- Log_471
+- Log_653
+- Log_1495
+- Log_194
+- Log_506
+- Log_110
+- Log_618
+- Log_350
+- Log_958
+- Log_1170
+- Log_362
+- Log_189
+- Log_1486
+- Log_191
+- Log_129
+- Log_1018
+- Log_682
+- Log_229
+- Log_648
+- Log_863
+- Log_708
+- Log_1128
+- Log_719
+- Log_516
+- Log_488
+- Log_853
+- Log_523
+- Log_1288
+- Log_593
+- Log_262
+- Log_1515
+- Log_834
+- Log_1183
+- Log_541
+- Log_275
+- Log_778
+- Log_651
+- Log_960
+- Log_547
+- Log_1179
+- Log_1131
+- Log_976
+- Log_418
+- Log_396
+- Log_137
+- Log_1426
+- Log_311
+- Log_320
+- Log_505
+- Log_838
+- Log_173
+- Log_128
+- Log_883
+- Log_377
+- Log_1246
+- Log_1350
+- Log_877
+- Log_177
+- Log_1058
+- Log_429
+- Log_1392
+- Log_924
+- Log_1318
+- Log_987
+- Log_967
+- Log_146
+- Log_1213
+- Log_477
+- Log_575
+- Log_746
+- Log_486
+- Log_1220
+- Log_752
+- Log_1089
+- Log_161
+- Log_954
+- Log_37
+- Log_302
+- Log_1119
+- Log_395
+- Log_1051
+- Log_1129
+- Log_1373
+- Log_1025
+- Log_1163
+- Log_1364
+- Log_684
+- Log_442
+- Log_540
+- Log_711
+- Log_1062
+- Log_862
+- Log_693
+- Log_474
+- Log_615
+- Log_1367
+- Log_777
+- Log_1028
+- Log_252
+- Log_1433
+- Log_1271
+- Log_893
+- Log_905
+- Log_1080
+- Log_299
+- Log_1231
+- Log_624
+- Log_298
+- Log_149
+- Log_351
+- Log_744
+- Log_535
+- Log_1227
+- Log_1225
+- Log_882
+- Log_1038
+- Log_290
+- Log_603
+- Log_1242
+- Log_1164
+- Log_1228
+- Log_1157
+- Log_1078
+- Log_1234
+- Log_1313
+- Log_169
+- Log_699
+- Log_188
+- Log_1134
+- Log_277
+- Log_287
+- Log_686
+- Log_812
+- Log_977
+- Log_794
+- Log_989
+- Log_930
+- Log_1109
+- Log_56
+- Log_904
+- Log_1146
+- Log_245
+- Log_420
+- Log_65
+- Log_844
+- Log_49
+- Log_1468
+- Log_767
+- Log_841
+- Log_358
+- Log_205
+- Log_1033
+- Log_717
+- Log_204
+- Log_891
+- Log_1007
+- Log_239
+- Log_141
+- Log_552
+- Log_1488
+- Log_531
+- Log_1466
+- Log_1219
+- Log_121
+- Log_961
+- Log_340
+- Log_413
+- Log_321
+- Log_502
+- Log_325
+- Log_1469
+- Log_427
+- Log_453
+- Log_580
+- Log_476
+- Log_971
+- Log_835
+- Log_126
+- Log_1169
+- Log_815
+- Log_999
+- Log_109
+- Log_1121
+- Log_1281
+- Log_1260
+- Log_155
+- Log_92
+- Log_330
+- Log_1110
+- Log_27
+- Log_963
+- Log_1410
+- Log_1208
+- Log_1045
+- Log_1156
+- Log_1076
+- Log_683
+- Log_1520
+- Log_409
+- Log_851
+- Log_702
+- Log_779
+- Log_1444
+- Log_900
+- Log_760
+- Log_1334
+- Log_1036
+- Log_561
+- Log_1519
+- Log_1188
+- Log_1064
+- Log_61
+- Log_868
+- Log_1171
+- Log_295
+- Log_8
+- Log_3
+- Log_75
+- Log_613
+- Log_432
+- Log_71
+- Log_1210
+- Log_348
+- Log_53
+- Log_297
+- Log_643
+- Log_436
+- Log_1460
+- Log_1382
+- Log_1401
+- Log_1104
+- Log_669
+- Log_709
+- Log_1437
+- Log_375
+- Log_145
+- Log_845
+- Log_915
+- Log_626
+- Log_1173
+- Log_1009
+- Log_1404
+- Log_808
+- Log_403
+- Log_1054
+- Log_953
+- Log_160
+- Log_573
+- Log_74
+- Log_854
+- Log_1297
+- Log_867
+- Log_586
+- Log_1434
+- Log_1500
+- Log_225
+- Log_353
+- Log_509
+- Log_308
+- Log_991
+- Log_0
+- Log_101
+- Log_57
+- Log_823
+- Log_1312
+- Log_498
+- Log_522
+- Log_1362
+- Log_1193
+- Log_1199
+- Log_441
+- Log_929
+- Log_1017
+- Log_925
+- Log_1388
+- Log_1347
+- Log_503
+- Log_132
+- Log_879
+- Log_456
+- Log_1263
+- Log_602
+- Log_856
+- Log_1298
+- Log_1244
+- Log_825
+- Log_1359
+- Log_136
+- Log_304
+- Log_1489
+- Log_309
+- Log_489
+- Log_1032
+- Log_520
+- Log_111
+- Log_1126
+- Log_288
+- Log_592
+- Log_931
+- Log_988
+- Log_739
+- Log_562
+- Log_935
+- Log_1158
+- Log_1103
+- Log_597
+- Log_193
+- Log_1478
+- Log_959
+- Log_1501
+- Log_481
+- Log_279
+- Log_11
+- Log_1331
+- Log_745
+- Log_240
+- Log_280
+- Log_135
+- Log_765
+- Log_965
+- Log_1235
+- Log_312
+- Log_1101
+- Log_1254
+- Log_1056
+- Log_775
+- Log_318
+- Log_902
+- Log_1293
+- Log_378
+- Log_944
+- Log_1221
+- Log_607
+- Log_816
+- Log_387
+- Log_119
+- Log_1524
+- Log_237
+- Log_979
+- Log_1197
+- Log_215
+- Log_398
+- Log_376
+- Log_932
+- Log_1439
+- Log_720
+- Log_1477
+- Log_1280
+- Log_810
+- Log_1236
+- Log_1451
+- Log_674
+- Log_323
+- Log_1311
+- Log_475
+- Log_63
+- Log_1387
+- Log_1068
+- Log_782
+- Log_439
+- Log_992
+- Log_461
+- Log_706
+- Log_1140
+- Log_952
+- Log_755
+- Log_1284
+- Log_1299
+- Log_1458
+- Log_1206
+- Log_1461
+- Log_1456
+- Log_1474
+- Log_1112
+- Log_507
+- Log_81
+- Log_1239
+- Log_43
+- Log_343
+- Log_688
+- Log_1394
+- Log_200
+- Log_722
+- Log_817
+- Log_621
+- Log_1506
+- Log_724
+- Log_1368
+- Log_884
+- Log_1224
+- Log_1400
+- Log_1267
+- Log_679
+- Log_16
+- Log_596
+- Log_705
+- Log_231
+- Log_599
+- Log_86
+- Log_305
+- Log_1191
+- Log_866
+- Log_73
+- Log_1115
+- Log_33
+- Log_1182
+- Log_464
+- Log_1349
+- Log_727
+- Log_1125
+- Log_1167
+- Log_687
+- Log_270
+- Log_1138
+- Log_1282
+- Log_95
+- Log_91
+- Log_265
+- Log_571
+- Log_249
+- Log_786
+- Log_994
+- Log_1348
+- Log_911
+- Log_450
+- Log_1291
+- Log_1133
+- Log_152
+- Log_512
+- Log_809
+- Log_406
+- Log_1044
+- Log_903
+- Log_1340
+- Log_528
+- Log_1074
+- Log_1272
+- Log_985
+- Log_1022
+- Log_581
+- Log_25
+- Log_1
+- Log_446
+- Log_1143
+- Log_927
+- Log_1204
+- Log_163
+- Log_937
+- Log_1190
+- Log_616
+- Log_518
+- Log_452
+- Log_1122
+- Log_548
+- Log_1153
+- Log_1008
+- Log_1453
+- Log_367
+- Log_292
+- Log_923
+- Log_103
+- Log_393
+- Log_1161
+- Log_543
+- Log_1514
+- Log_369
+- Log_590
+- Log_1222
+- Log_1476
+- Log_1503
+- Log_1165
+- Log_1001
+- Log_843
+- Log_338
+- Log_142
+- Log_276
+- Log_1066
+- Log_1262
+- Log_1259
+- Log_1498
+- Log_572
+- Log_880
+- Log_680
+- Log_1019
+- Log_7
+- Log_423
+- Log_1181
+- Log_660
+- Log_797
+- Log_1409
+- Log_1366
+- Log_920
+- Log_479
+- Log_1286
+- Log_426
+- Log_490
+- Log_174
+- Log_332
+- Log_1105
+- Log_974
+- Log_567
+- Log_17
+- Log_1258
+- Log_1303
+- Log_465
+- Log_26
+- Log_1189
+- Log_1507
+- Log_359
+- Log_1323
+- Log_783
+- Log_1279
+- Log_609
+- Log_860
+- Log_1088
+- Log_167
+- Log_466
+- Log_440
+- Log_201
+- Log_1417
+- Log_392
+- Log_96
+- Log_212
+- Log_1365
+- Log_625
+- Log_662
+- Log_957
+- Log_1072
+- Log_582
+- Log_480
+- Log_428
+- Log_627
+- Log_1502
+- Log_246
+- Log_1289
+- Log_445
+- Log_1082
+- Log_383
+- Log_1147
+- Log_361
+- Log_659
+- Log_966
+- Log_566
+- Log_1256
+- Log_638
+- Log_1326
+- Log_1003
+- Log_1248
+- Log_735
+- Log_334
+- Log_1442
+- Log_803
+- Log_98
+- Log_1005
+- Log_28
+- Log_827
+- Log_282
+- Log_819
+- Log_1209
+- Log_1414
+- Log_538
+- Log_83
+- Log_1464
+- Log_1398
+- Log_1240
+- Log_583
+- Log_781
+- Log_748
+- Log_712
+- Log_1422
+- Log_134
+- Log_1411
+- Log_243
+- Log_887
+- Log_855
+- Log_1463
+- Log_485
+- Log_32
+- Log_59
+- Log_324
+- Log_1308
+- Log_758
+- Log_1511
+- Log_872
+- Log_598
+- Log_399
+- Log_10
+- Log_289
+- Log_1470
+- Log_1296
+- Log_296
+- Log_31
+- Log_41
+- Log_386
+- Log_127
+- Log_335
+- Log_713
+- Log_493
+- Log_116
+- Log_1094
+- Log_1521
+- Log_85
+- Log_499
+- Log_998
+- Log_326
+- Log_244
+- Log_1047
+- Log_1266
+- Log_336
+- Log_1042
+- Log_385
+- Log_532
+- Log_1512
+- Log_564
+- Log_438
+- Log_1162
+- Log_247
+- Log_1454
+- Log_536
+- Log_303
+- Log_342
+- Log_982
+- Log_13
+- Log_652
+- Log_721
+- Log_455
+- Log_847
+- Log_1319
+- Log_743
+- Log_1004
+- Log_345
+- Log_663
+- Log_1198
+- Log_187
+- Log_1353
+- Log_250
+- Log_839
+- Log_1473
+- Log_19
+- Log_594
+- Log_714
+- Log_857
+- Log_322
+- Log_950
+- Log_1097
+- Log_1277
+- Log_939
+- Log_604
+- Log_1443
+- Log_715
+- Log_1344
+- Log_468
+- Log_1233
+- Log_153
+- Log_1283
+- Log_1050
+- Log_278
+- Log_356
+- Log_1315
+- Log_425
+- Log_497
+- Log_1484
+- Log_1475
+- Log_112
+- Log_774
+- Log_1402
+- Log_605
+- Log_492
+- Log_949
+- Log_685
+- Log_82
+- Log_1149
+- Log_1310
+- Log_690
+- Log_458
+- Log_1302
+- Log_1386
+- Log_70
+- Log_1341
+- Log_368
+- Log_1061
+- Log_842
+- Log_1356
+- Log_138
+- Log_1085
+- Log_1428
+- Log_1264
+- Log_557
+- Log_306
+- Log_390
+- Log_94
+- Log_1172
+- Log_956
+- Log_1095
+- Log_1108
+- Log_1063
+- Log_451
+- Log_587
+- Log_1440
+- Log_269
+- Log_272
+- Log_93
+- Log_818
+- Log_697
+- Log_1459
+- Log_235
+- Log_1390
+- Log_151
+- Log_261
+- Log_1152
+- Log_1145
+- Log_983
+- Log_463
+- Log_122
+- Log_912
+- Log_133
+- Log_1490
+- Log_728
+- Log_1497
+- Log_62
+- Log_1114
+- Log_1142
+- Log_513
+- Log_1010
+- Log_1065
+- Log_9
+- Log_726
+- Log_741
+- Log_1081
+- Log_1327
+- Log_1118
+- Log_511
+- Log_553
+- Log_15
+- Log_846
+- Log_1137
+- Log_317
+- Log_1314
+- Log_716
+- Log_389
+- Log_595
+- Log_346
+- Log_29
+- Log_42
+- Log_72
+- Log_824
+- Log_791
+- Log_527
+- Log_1203
+- Log_896
+- Log_1041
+- Log_1287
+- Log_591
+- Log_1099
+- Log_644
+- Log_208
+- Log_833
+- Log_1012
+- Log_529
+- Log_545
+- Log_1378
+- Log_355
+- Log_1517
+- Log_886
+- Log_1421
+- Log_910
+- Log_1424
+- Log_1337
+- Log_1030
+- Log_1385
+- Log_1493
+- Log_224
+- Log_578
+- Log_918
+logs_val:
+- Log_737
+- Log_1187
+- Log_852
+- Log_253
+- Log_1518
+- Log_90
+- Log_723
+- Log_166
+- Log_1333
+- Log_555
+- Log_619
+- Log_1154
+- Log_1346
+- Log_1136
+- Log_628
+- Log_922
+- Log_1508
+- Log_52
+- Log_611
+- Log_517
+- Log_554
+- Log_874
+- Log_1127
+- Log_1174
+- Log_21
+- Log_58
+- Log_1358
+- Log_897
+- Log_47
+- Log_871
+- Log_579
+- Log_1252
+- Log_656
+- Log_731
+- Log_45
+- Log_1043
+- Log_881
+- Log_210
+- Log_414
+- Log_1273
+- Log_1418
+- Log_1509
+- Log_233
+- Log_1345
+- Log_1071
+- Log_1505
+- Log_264
+- Log_1429
+- Log_801
+- Log_209
+- Log_749
+- Log_641
+- Log_495
+- Log_22
+- Log_1016
+- Log_1285
+- Log_807
+- Log_1073
+- Log_1029
+- Log_514
+- Log_40
+- Log_1294
+- Log_214
+- Log_945
+- Log_158
+- Log_908
+- Log_154
+- Log_230
+- Log_1238
+- Log_66
+- Log_901
+- Log_1351
+- Log_1070
+- Log_1412
+- Log_993
+- Log_894
+- Log_1270
+- Log_417
+- Log_763
+- Log_941
+- Log_673
+- Log_832
+- Log_840
+- Log_1006
+- Log_657
+- Log_344
+- Log_1192
+- Log_1389
+- Log_569
+- Log_1407
+- Log_459
+- Log_1027
+- Log_147
+- Log_54
+- Log_622
+- Log_203
+- Log_227
+- Log_80
+- Log_813
+- Log_1482
+- Log_500
+- Log_433
+- Log_1342
+- Log_213
+- Log_448
+- Log_170
+- Log_23
+- Log_120
+- Log_951
+- Log_848
+- Log_251
+- Log_665
+- Log_419
+- Log_729
+- Log_46
+- Log_379
+- Log_1265
+- Log_1139
+- Log_181
+- Log_87
+- Log_677
+- Log_542
+- Log_168
+- Log_14
+- Log_734
+- Log_1230
+- Log_301
+- Log_981
+- Log_873
+- Log_1113
+- Log_179
+- Log_917
+- Log_421
+- Log_220
+- Log_588
+- Log_156
+- Log_1317
+- Log_996
+- Log_18
+- Log_218
+- Log_1111
+- Log_964
+- Log_1150
+- Log_940
+- Log_899
+- Log_1328
+- Log_1336
+- Log_105
+- Log_805
+- Log_1295
+- Log_1168
+- Log_1290
+- Log_195
+- Log_1229
+- Log_1369
+- Log_631
+- Log_892
+- Log_1472
+- Log_273
+- Log_742
+- Log_1055
+- Log_217
+- Log_521
+- Log_381
+- Log_1087
+- Log_795
+- Log_1023
+- Log_1332
+- Log_388
+- Log_1039
+- Log_1205
+- Log_365
+- Log_286
+- Log_1292
+- Log_319
+- Log_267
+- Log_620
+- Log_371
+- Log_99
+- Log_1079
+- Log_601
+- Log_1215
+- Log_491
+- Log_889
+- Log_617
+- Log_766
+- Log_373
+- Log_948
+- Log_1324
+- Log_431
+- Log_634
+- Log_668
+- Log_916
+- Log_793
+- Log_206
+- Log_747
+- Log_681
+- Log_1432
+- Log_658
+- Log_234
+- Log_285
+- Log_1021
+- Log_546
+- Log_906
+- Log_1370
+- Log_700
+- Log_131
+- Log_1441
+- Log_858
+- Log_946
+- Log_995
+- Log_347
+- Log_524
+- Log_123
+- Log_1057
+- Log_1250
+- Log_404
+- Log_1399
+- Log_473
+- Log_180
+- Log_221
+- Log_50
+- Log_1241
+- Log_1427
+- Log_1257
+- Log_437
+- Log_1445
+- Log_1487
+loss_patience: 100
+lr: 1.0e-05
+lr_scheduler:
+- 5
+- 15
+lstm_n_layers: 1
+no_seq: 4
+note: Testing 128 Latent variable size
+num_workers: 16
+path_dataset: /mnt/storage0/carla-mahdi-3
+random_seed: 43
+reg: 0.0001
+train_split: 0.7
+validation_split: 0.15

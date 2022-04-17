@@ -15,10 +15,16 @@ from src.data.stats import classification_accuracy
 from src.dataset import vae_dataset, imitation_dataset, warmstart_dataset
 
 from src.architectures import layer_config
-from src.architectures.nets import CNNAutoEncoder, ConvNet1, CIRLBasePolicy
+from src.architectures.nets import (
+    CNNAutoEncoder,
+    ConvNet1,
+    CIRLBasePolicy,
+    CIRLFutureLatent,
+)
 
 from src.models.vae import VAE
 from src.models.imitation import Imitation, WarmStart
+from scenario_runner.run_scenario import RunScenario
 
 from src.visualization.visualize import show_grid, plot_trends
 
@@ -171,6 +177,54 @@ with skip_run('skip', 'warm_starting') as check, check():
     )
     trainer.fit(model)
 
+with skip_run('skip', 'warm_starting_with_future_latent') as check, check():
+    # Load the configuration
+    cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
+    cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
+
+    # Random seed
+    gpus = get_num_gpus()
+    torch.manual_seed(cfg['pytorch_seed'])
+
+    # Checkpoint
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(
+        monitor='val_loss',
+        dirpath=cfg['logs_path'],
+        save_top_k=1,
+        filename='warm_start',
+        mode='min',
+    )
+    logger = pl.loggers.TensorBoardLogger(cfg['logs_path'], name='warm_start')
+
+    # Setup
+    # Load the backbone network
+    read_path = 'trained_models/1631095225/1631095225_model_epoch_19.pth'
+    future_latent_prediction = torch.load(read_path, map_location=torch.device('cpu'))
+    cfg['future_latent_prediction'] = future_latent_prediction
+
+    print(future_latent_prediction)
+
+    # Testing
+    x_in = torch.rand((5, 4, 1, 256, 256)).to('cpu')
+    # s_in = torch.rand((5, 4, 4)).to('cpu')
+    x_out, x_out_ae, x_out_lat, x_in_lat, s_out = future_latent_prediction(x_in)
+    afaf
+
+    net = CIRLFutureLatent(cfg)
+    # actions = net(net.example_input_array, net.example_command)
+    # print(actions.shape)  # verification
+
+    # Dataloader
+    data_loader = warmstart_dataset.webdataset_data_iterator(cfg)
+    model = WarmStart(cfg, net, data_loader)
+    trainer = pl.Trainer(
+        gpus=gpus,
+        max_epochs=cfg['NUM_EPOCHS'],
+        logger=logger,
+        callbacks=[checkpoint_callback],
+    )
+    trainer.fit(model)
+
 with skip_run('skip', 'algorithm_stats') as check, check():
     cfg = yaml.load(open('configs/vae.yaml'), Loader=yaml.SafeLoader)
     classification_accuracy(cfg)
@@ -197,3 +251,18 @@ with skip_run('skip', 'figure_plotting') as check, check():
         'Validation (Conv. att.)',
     ]
     plot_trends(paths, legends)
+
+with skip_run('skip', 'replay_trained_model') as check, check():
+    # Load the configuration
+    cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
+    cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
+
+    restore_config = {'checkpoint_path': 'logs/2022-01-31/WARMSTART/warm_start.ckpt'}
+
+    # Random seed
+    torch.manual_seed(cfg['pytorch_seed'])
+    net = CIRLBasePolicy(cfg)
+    cfg['net'] = net
+    cfg['model'] = WarmStart
+
+    RunScenario(cfg=cfg, restore_config=restore_config)

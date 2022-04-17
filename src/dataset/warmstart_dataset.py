@@ -72,6 +72,7 @@ def get_dataset_paths(config):
 
 def webdataset_data_iterator(config):
 
+    # Get required paths
     paths = get_dataset_paths(config)
 
     # Parameters

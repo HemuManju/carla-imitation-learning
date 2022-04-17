@@ -20,6 +20,7 @@ class UnfreezeModelCallback(Callback):
     Unfreeze model after a few epochs.
     It currently unfreezes every possible parameter in model, probably shouldn't work that way...
     """
+
     def __init__(self, wait_epochs=5):
         self.wait_epochs = wait_epochs
 

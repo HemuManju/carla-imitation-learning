@@ -255,3 +255,48 @@ class CIRLBasePolicy(pl.LightningModule):
         embedding = self.back_bone_net(x)
         actions = self.action_net(embedding, command)
         return actions
+
+
+class CIRLFutureLatent(pl.LightningModule):
+    """A simple convolution neural network"""
+
+    def __init__(self, model_config):
+        super(CIRLFutureLatent, self).__init__()
+
+        # Parameters
+        self.cfg = model_config
+        obs_size = self.cfg['obs_size']
+        n_actions = self.cfg['n_actions']
+
+        # Example inputs
+        self.example_input_array = torch.randn((5, obs_size, 256, 256))
+        self.example_command = torch.tensor([1, 0, 2, 3, 1])
+
+        self.back_bone_net = BaseConvNet(obs_size)
+        self.action_net = BranchNet(output_size=n_actions)
+
+        # Future latent vector prediction
+        self.future_latent_prediction = self.set_parameter_requires_grad(
+            self.cfg['future_latent_prediction']
+        )
+
+    def set_parameter_requires_grad(self, model):
+        for param in model.parameters():
+            param.requires_grad = False
+        return model
+
+    def forward(self, x, command):
+
+        # Future latent vector prediction
+        self.future_latent_prediction.eval()
+        x_out, x_out_ae, x_out_lat, x_in_lat, s_out = self.future_latent_prediction(x)
+
+        # Basepolicy
+        embedding = self.back_bone_net(x)
+
+        # Combine the embeddings
+        combined_embeddings = torch.stack(x_out_lat[:, -1, :], embedding)
+        afaf
+
+        actions = self.action_net(combined_embeddings, command)
+        return actions

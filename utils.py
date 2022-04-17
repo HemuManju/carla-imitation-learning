@@ -24,17 +24,16 @@ def skip_run(flag, f):
     None
 
     """
+
     @contextmanager
     def check_active():
         activated = ['run']
         p = ColorPrint()  # printing options
         if flag in activated:
-            p.print_run('{:>12}  {:>3}  {:>12}'.format('Running the block',
-                                                       '|', f))
+            p.print_run('{:>12}  {:>3}  {:>12}'.format('Running the block', '|', f))
             yield
         else:
-            p.print_skip('{:>12}  {:>2}  {:>12}'.format(
-                'Skipping the block', '|', f))
+            p.print_skip('{:>12}  {:>2}  {:>12}'.format('Skipping the block', '|', f))
             raise SkipWith()
 
     try:
@@ -66,9 +65,16 @@ def get_num_gpus():
 
 def launch_tensorboard(hparams):
     tb = program.TensorBoard()
-    tb.configure(argv=[
-        None, '--logdir', hparams.log_dir, '--reload_multifile', 'true',
-        '--reload_interval', '15'
-    ])
+    tb.configure(
+        argv=[
+            None,
+            '--logdir',
+            hparams.log_dir,
+            '--reload_multifile',
+            'true',
+            '--reload_interval',
+            '15',
+        ]
+    )
     tb.launch()
     return None
