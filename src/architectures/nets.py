@@ -394,7 +394,7 @@ class CarlaNet(nn.Module):
 
     def forward(self, img, speed):
         img = self.conv_block(img)
-        img = img.view(-1, 8192)
+        img = img.reshape(-1, 8192)
         img = self.img_fc(img)
 
         speed = self.speed_fc(speed)

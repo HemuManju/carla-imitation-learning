@@ -1,12 +1,11 @@
+import os
+import time
 from datetime import date, datetime
 
 import pandas as pd
 
 import torch
 import pytorch_lightning as pl
-from pytorch_lightning.callbacks.early_stopping import EarlyStopping
-
-from torchvision.utils import make_grid
 
 import matplotlib.pyplot as plt
 
@@ -18,9 +17,10 @@ from src.architectures.nets import CarlaNet
 
 
 from src.models.imitation import ConditionalImitation
-from scenario_runner.run_scenario import RunScenario
+from src.models.inference import run_benchmark, CILCarlaAgent
+from src.models.utils import CarlaServer, kill_all_servers
 
-from src.visualization.visualize import show_grid, plot_trends
+from src.visualization.visualize import plot_trends
 
 import yaml
 from utils import skip_run, get_num_gpus
@@ -67,6 +67,7 @@ with skip_run('skip', 'conditional_imitation_learning') as check, check():
             max_epochs=cfg['NUM_EPOCHS'],
             logger=logger,
             callbacks=[checkpoint_callback],
+            enable_progress_bar=False,
         )
     else:
         trainer = pl.Trainer(
@@ -75,6 +76,7 @@ with skip_run('skip', 'conditional_imitation_learning') as check, check():
             logger=logger,
             callbacks=[checkpoint_callback],
             resume_from_checkpoint=cfg['check_point_path'],
+            enable_progress_bar=False,
         )
     trainer.fit(model)
 
@@ -105,17 +107,27 @@ with skip_run('skip', 'figure_plotting') as check, check():
     ]
     plot_trends(paths, legends)
 
-with skip_run('skip', 'replay_trained_model') as check, check():
+with skip_run('run', 'replay_trained_model') as check, check():
     # Load the configuration
-    cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
+    cfg = yaml.load(open('configs/imitation.yaml'), Loader=yaml.SafeLoader)
     cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
 
-    restore_config = {'checkpoint_path': 'logs/2022-01-31/WARMSTART/warm_start.ckpt'}
+    # Setup carla path
+    os.environ["CARLA_ROOT"] = "/home/hemanth/Carla/CARLA_0.8.2"
+    kill_all_servers()
+    carla_server = CarlaServer(cfg['carla_server'])
+    host, server_port = carla_server.start_server()
+    time.sleep(5)
 
-    # Random seed
-    torch.manual_seed(cfg['pytorch_seed'])
-    net = CIRLBasePolicy(cfg)
-    cfg['net'] = net
-    cfg['model'] = WarmStart
+    # Update the benchmark config
+    cfg['benchmark_config']['host'] = 'localhost'
+    cfg['benchmark_config']['port'] = server_port
 
-    RunScenario(cfg=cfg, restore_config=restore_config)
+    restore_config = {
+        'checkpoint_path': 'logs/2022-04-19/COND_IMITATION/logs/time_00_52_09/last.ckpt'
+    }
+    model = ConditionalImitation.load_from_checkpoint(
+        restore_config['checkpoint_path'], hparams=cfg, net=CarlaNet(), carla_data=None
+    )
+    agent = CILCarlaAgent(model)
+    run_benchmark(agent, benchmark_config=cfg['benchmark_config'])

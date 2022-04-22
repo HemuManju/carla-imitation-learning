@@ -1,0 +1,95 @@
+---------------------------------------
+Begin PBS Prologue Mon Apr 18 01:28:55 EDT 2022
+Job ID:     4371124.sched-torque.pace.gatech.edu
+User ID:    hmanjunatha6
+Job name:   imitation
+Queue:      inferno
+End PBS Prologue Mon Apr 18 01:28:55 EDT 2022
+---------------------------------------
+stty: standard input: Inappropriate ioctl for device
+/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/torch/utils/data/dataloader.py:478: UserWarning: This DataLoader will create 8 worker processes in total. Our suggested max number of worker in current system is 4, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(_create_warning_msg(
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+
+  | Name | Type     | Params
+----------------------------------
+0 | net  | CarlaNet | 7.0 M 
+----------------------------------
+7.0 M     Trainable params
+0         Non-trainable params
+7.0 M     Total params
+27.868    Total estimated model params size (MB)
+/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:631: UserWarning: Checkpoint directory /storage/scratch1/4/hmanjunatha6/carla-imitation-learning/logs/2022-04-18/COND_IMITATION/logs/time_01_29_06 exists and is not empty.
+  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
+pygame 2.1.2 (SDL 2.0.16, Python 3.9.10)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[1;32mRunning the block    |  conditional_imitation_learning[0m
+=>> PBS: job killed: walltime 72020 exceeded limit 72000
+Exception ignored in: <function _MultiProcessingDataLoaderIter.__del__ at 0x2aab471f91f0>
+Traceback (most recent call last):
+  File "/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/torch/utils/data/dataloader.py", line 1328, in __del__
+---------------------------------------
+Begin PBS Epilogue Mon Apr 18 21:29:15 EDT 2022
+Job ID:     4371124.sched-torque.pace.gatech.edu
+User ID:    hmanjunatha6
+Job name:   imitation
+Resources:  nodes=1:ppn=4:gpus=1:RTX6000,pmem=8gb,walltime=20:00:00,neednodes=1:ppn=4:gpus=1:RTX6000
+Rsrc Used:  cput=78:21:37,vmem=217422296kb,walltime=20:00:20,mem=3515152kb,energy_used=0
+Queue:      inferno
+Nodes:     
+atl1-1-03-006-15.pace.gatech.edu
+End PBS Epilogue Mon Apr 18 21:29:15 EDT 2022
+---------------------------------------
+---------------------------------------
+Begin PBS Prologue Tue Apr 19 00:46:19 EDT 2022
+Job ID:     4375496.sched-torque.pace.gatech.edu
+User ID:    hmanjunatha6
+Job name:   imitation
+Queue:      inferno
+End PBS Prologue Tue Apr 19 00:46:19 EDT 2022
+---------------------------------------
+stty: standard input: Inappropriate ioctl for device
+/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/torch/utils/data/dataloader.py:478: UserWarning: This DataLoader will create 8 worker processes in total. Our suggested max number of worker in current system is 4, which is smaller than what this DataLoader is going to create. Please be aware that excessive worker creation might get DataLoader running slow or even freeze, lower the worker number to avoid potential slowness/freeze if necessary.
+  warnings.warn(_create_warning_msg(
+/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/pytorch_lightning/trainer/connectors/checkpoint_connector.py:45: LightningDeprecationWarning: Setting `Trainer(resume_from_checkpoint=)` is deprecated in v1.5 and will be removed in v1.7. Please pass `Trainer.fit(ckpt_path=)` directly instead.
+  rank_zero_deprecation(
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/pytorch_lightning/trainer/trainer.py:1905: LightningDeprecationWarning: `trainer.resume_from_checkpoint` is deprecated in v1.5 and will be removed in v1.7. Specify the fit checkpoint path with `trainer.fit(ckpt_path=)` instead.
+  rank_zero_deprecation(
+Restoring states from the checkpoint path at logs/2022-04-18/COND_IMITATION/logs/time_01_29_06/last.ckpt
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/pytorch_lightning/trainer/connectors/checkpoint_connector.py:247: UserWarning: You're resuming from a checkpoint that ended mid-epoch. Training will start from the beginning of the next epoch. This can cause unreliable results if further training is done, consider using an end of epoch checkpoint.
+  rank_zero_warn(
+Restored all states from the checkpoint file at logs/2022-04-18/COND_IMITATION/logs/time_01_29_06/last.ckpt
+
+  | Name | Type     | Params
+----------------------------------
+0 | net  | CarlaNet | 7.0 M 
+----------------------------------
+7.0 M     Trainable params
+0         Non-trainable params
+7.0 M     Total params
+27.868    Total estimated model params size (MB)
+/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:631: UserWarning: Checkpoint directory /storage/scratch1/4/hmanjunatha6/carla-imitation-learning/logs/2022-04-19/COND_IMITATION/logs/time_00_52_09 exists and is not empty.
+  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
+pygame 2.1.2 (SDL 2.0.16, Python 3.9.10)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[1;32mRunning the block    |  conditional_imitation_learning[0m
+=>> PBS: job killed: walltime 72012 exceeded limit 72000
+---------------------------------------
+Begin PBS Epilogue Tue Apr 19 20:46:31 EDT 2022
+Job ID:     4375496.sched-torque.pace.gatech.edu
+User ID:    hmanjunatha6
+Job name:   imitation
+Resources:  nodes=1:ppn=4:gpus=1:RTX6000,pmem=8gb,walltime=20:00:00,neednodes=1:ppn=4:gpus=1:RTX6000
+Rsrc Used:  cput=76:44:22,vmem=222673860kb,walltime=20:00:12,mem=3923100kb,energy_used=0
+Queue:      inferno
+Nodes:     
+atl1-1-03-006-13.pace.gatech.edu
+End PBS Epilogue Tue Apr 19 20:46:31 EDT 2022
+---------------------------------------
