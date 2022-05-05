@@ -286,17 +286,20 @@ class CIRLFutureLatent(pl.LightningModule):
         return model
 
     def forward(self, x, command):
-
         # Future latent vector prediction
         self.future_latent_prediction.eval()
-        x_out, x_out_ae, x_out_lat, x_in_lat, s_out = self.future_latent_prediction(x)
+        (
+            x_out,
+            x_out_ae,
+            x_out_lat,
+            x_in_lat,
+        ) = self.future_latent_prediction.backbone(x[:, :, None, :, :])
 
         # Basepolicy
         embedding = self.back_bone_net(x)
 
         # Combine the embeddings
-        combined_embeddings = torch.stack(x_out_lat[:, -1, :], embedding)
-        afaf
+        combined_embeddings = torch.hstack((x_out_lat[:, -1, :], embedding))
 
         actions = self.action_net(combined_embeddings, command)
         return actions

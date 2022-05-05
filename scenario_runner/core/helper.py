@@ -31,7 +31,12 @@ try:
 except IndexError:
     pass
 
-import carla
+
+try:
+    import carla
+except ModuleNotFoundError:
+    pass
+
 from datetime import datetime
 import re
 import socket

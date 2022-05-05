@@ -30,28 +30,31 @@ def interactive_show_grid(imgs):
         sys.exit()
 
 
-def plot_trends(paths, legends):
+def plot_trends(paths, legends, config, axs=None):
     dfs = []
     for path in paths:
         dfs.append(pd.read_csv(path))
-    plt.style.use('clean')
-    fig, axs = plt.subplots(figsize=(8, 5))
-    for df in dfs:
-        axs.plot(df['Step'], df['Value'])
+
+    if axs is None:
+        plt.style.use('clean')
+        fig, axs = plt.subplots(figsize=(8, 5))
+
+    for i, df in enumerate(dfs):
+        if config['dashes']:
+            axs.plot(df['Step'], df['Value'], dashes=config['dashes'])
+        else:
+            axs.plot(df['Step'], df['Value'])
+
 
     plt.xlim([-1, dfs[0]['Step'].values[-1]])
     plt.ylabel('Mean Squared Loss')
     plt.xlabel('Training Steps')
-    plt.grid()
-    plt.legend(legends)
-    # plt.tight_layout()
-    plt.show()
 
 
 def plot_frames(ax, array):
     try:
         for i in range(array.shape[0]):
             ax[i].imshow(array[i, :, :], origin='lower')
-        plt.pause(0.01)
+        plt.pause(0.00001)
     except KeyboardInterrupt:
         print("\nshutdown by user")

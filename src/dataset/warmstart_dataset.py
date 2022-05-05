@@ -1,3 +1,4 @@
+from importlib.resources import path
 from pathlib import Path
 import natsort
 
@@ -8,12 +9,10 @@ from torchvision import transforms
 
 from itertools import islice, cycle
 
-preproc = transforms.Compose(
-    [transforms.Grayscale(), transforms.Normalize(mean=[0.5], std=[0.5])]
-)
+from .utils import get_preprocessing_pipeline
 
 
-def concatenate_samples(samples):
+def concatenate_samples(samples, config):
     combined_data = {
         k: [d.get(k) for d in samples if k in d] for k in set().union(*samples)
     }
@@ -21,6 +20,7 @@ def concatenate_samples(samples):
     images = transforms.functional.rotate(
         torch.stack(combined_data['jpeg'], dim=0), angle=90
     )
+    preproc = get_preprocessing_pipeline(config)
     images = preproc(images).squeeze(1)
     last_data = samples[-1]['json']
 
@@ -35,14 +35,14 @@ def concatenate_samples(samples):
     return images, command, action
 
 
-def generate_seqs(src, nsamples=3):
+def generate_seqs(src, nsamples=3, config=None):
     it = iter(src)
     result = tuple(islice(it, nsamples))
     if len(result) == nsamples:
-        yield concatenate_samples(result)
+        yield concatenate_samples(result, config)
     for elem in it:
         result = result[1:] + (elem,)
-        yield concatenate_samples(result)
+        yield concatenate_samples(result, config)
 
 
 def find_tar_files(read_path, pattern):
@@ -72,7 +72,6 @@ def get_dataset_paths(config):
 
 def webdataset_data_iterator(config):
 
-    # Get required paths
     paths = get_dataset_paths(config)
 
     # Parameters
@@ -88,7 +87,7 @@ def webdataset_data_iterator(config):
             dataset = (
                 wds.WebDataset(path, shardshuffle=False)
                 .decode("torchrgb")
-                .pipe(generate_seqs, SEQ_LEN)
+                .then(generate_seqs, SEQ_LEN, config)
             )
             data_loader = wds.WebLoader(
                 dataset,

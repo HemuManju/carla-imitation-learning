@@ -1,0 +1,20 @@
+#This is an example PBS script to run a parallel python program
+#PBS -N imitation            		 # job name
+#PBS -A GT-hmanjunatha6              # account to which job is charged, ex: GT-pt43
+#PBS -l nodes=1:ppn=6:gpus=1:RTX6000 # number of nodes and cores per node required
+#PBS -l pmem=8gb             		 # memory per core
+#PBS -l walltime=1200:00			 # duration of the job (ex: 15 min)
+#PBS -q inferno              		 # queue name (where job is submitted)
+#PBS -j oe                   		 # combine output and error messages into 1 file
+#PBS -o results.out          		 # output file name
+
+# Setup up the conda environment
+cd $PBS_O_WORKDIR
+module load anaconda2/2019.10
+source activate carla
+
+# Run the scipt
+python train.py
+
+date
+echo "Successfully completed"

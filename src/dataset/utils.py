@@ -3,6 +3,8 @@ import collections
 
 from natsort import natsorted
 
+from torchvision import transforms
+
 
 def nested_dict():
     return collections.defaultdict(nested_dict)
@@ -35,3 +37,14 @@ def get_image_json_files(read_path):
     _, file_list = run_fast_scandir(read_path, [".json"])
     json_files = natsorted(file_list)
     return image_files, json_files
+
+
+def get_preprocessing_pipeline(config):
+    preproc = transforms.Compose(
+        [
+            transforms.Grayscale(),
+            transforms.Resize(size=(128, 128)),
+            transforms.Normalize(mean=[0.5], std=[0.5]),
+        ]
+    )
+    return preproc

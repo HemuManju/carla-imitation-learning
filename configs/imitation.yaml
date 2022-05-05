@@ -1,23 +1,82 @@
-# @package _global_
-
-logs: ['Log1', 'Log2', 'Log3', 'Log4', 'Log5', 'Log6']
-camera: ['camera']
-
 ##-----------------------------------------------------#
 # Training parameters
-NUM_EPOCHS: 50
+NUM_EPOCHS: 100
 BATCH_SIZE: 64
-LEARNING_RATE: 0.001
+LEARNING_RATE: 0.0001
 DROP_OUT: 0.20
 TEST_SIZE: 0.15
 VALID_SIZE: 0.15
 
+##-----------------------------------------------------#
+# Data Parameters
 obs_size: 4
-n_actions: 9
+n_actions: 3
 frame_skip: 4
+branch_weight: 1
+speed_weight: 1
+number_workers: 8
 
-train_logs: ['Log1']
-test_logs: ['Log2']
+##-----------------------------------------------------#
+# Other parameters
 image_size: [1, 224, 224]
 alpha: 0.75
 beta: 0.1
+
+##-----------------------------------------------------#
+# Data splitting scheme
+data_split:
+  training:
+    town: ['Town01']
+    season: ['ClearNoon', 'HardRainNoon', 'HardRainSunset']
+    behavior: ['normal', 'catious']
+  validation:
+    town: ['Town01']
+    season: ['ClearSunset']
+    behavior: ['normal']
+  testing:
+    town: []
+    season: []
+    behavior: []
+
+##-----------------------------------------------------#
+# Path(s)
+# training_dataset: '/home/hemanth/Desktop/conditional_imitation/data/AgentHuman/SeqTrain/'
+# validation_dataset: '/home/hemanth/Desktop/conditional_imitation/data/AgentHuman/SeqVal/'
+
+# pace cluster paths
+training_dataset: '../data/AgentHuman/SeqTrain/'
+validation_dataset: '../data/AgentHuman/SeqVal/'
+
+logs_path: 'logs/'
+raw_data_path: 'data/raw'
+train_data_path: 'data/raw/train'
+val_data_path: 'data/raw/validation'
+test_data_path: 'data/raw/test'
+
+check_point_path: 'logs/2022-04-18/COND_IMITATION/logs/time_01_29_06/last.ckpt'
+
+##-----------------------------------------------------#
+# Benchmark config
+benchmark_config:
+  benchmark: 'corl2017'
+  city_name: 'Town01'
+  log_name: local_test
+  continue_experiment: False
+  host: null
+  port: null
+
+##-----------------------------------------------------#
+# Carla server parameters
+carla_server:
+  host: 'localhost'
+  timeout: 2.0
+  timestep: 0.1
+  retries_on_error: 25
+  resolution_x: 600
+  resolution_y: 600
+  quality_level: 'Low'
+  enable_map_assets: True
+  enable_rendering: True
+  show_display: True
+
+pytorch_seed: 1337
