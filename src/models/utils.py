@@ -148,7 +148,7 @@ class CarlaServer:
             "-world-port={}".format(self.server_port),
             "-quality-level={}".format(self.config["quality_level"]),
             "-benchmark",
-            "-fps=10",
+            # "-fps=10",
         ]
 
         server_command_text = " ".join(map(str, server_command))

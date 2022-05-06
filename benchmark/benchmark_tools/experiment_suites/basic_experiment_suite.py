@@ -15,7 +15,6 @@ from .experiment_suite import ExperimentSuite
 
 
 class BasicExperimentSuite(ExperimentSuite):
-
     @property
     def train_weathers(self):
         return [1]
@@ -48,9 +47,9 @@ class BasicExperimentSuite(ExperimentSuite):
 
         camera = Camera('CameraRGB')
         camera.set(FOV=100)
-        camera.set_image_size(800, 600)
-        camera.set_position(2.0, 0.0, 1.4)
-        camera.set_rotation(-15.0, 0, 0)
+        camera.set_image_size(256, 256)
+        camera.set_position(1.25, 0, 1.85)
+        camera.set_rotation(0, 0, 0)
 
         # Based on the parameters, creates a vector with experiment objects.
         experiments_vector = []
@@ -66,17 +65,14 @@ class BasicExperimentSuite(ExperimentSuite):
                     SendNonPlayerAgentsInfo=True,
                     NumberOfVehicles=vehicles,
                     NumberOfPedestrians=pedestrians,
-                    WeatherId=weather
-
+                    WeatherId=weather,
+                    QualityLevel='Low',
                 )
                 # Add all the cameras that were set for this experiments
                 conditions.add_sensor(camera)
                 experiment = Experiment()
                 experiment.set(
-                    Conditions=conditions,
-                    Poses=poses,
-                    Task=iteration,
-                    Repetitions=2
+                    Conditions=conditions, Poses=poses, Task=iteration, Repetitions=2
                 )
                 experiments_vector.append(experiment)
 

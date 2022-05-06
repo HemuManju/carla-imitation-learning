@@ -14,6 +14,8 @@ from benchmark.carla.client import VehicleControl
 
 from src.dataset.utils import get_preprocessing_pipeline
 
+import matplotlib.pyplot as plt
+
 
 class CILAgent(Agent):
     def __init__(
@@ -144,6 +146,11 @@ class CustomCILAgent(Agent):
 
         # Inputs for the network
         image_input = self.preprocess(convert(image)).unsqueeze(0)
+        # plt.imshow(image_input[0, :, :, :].permute(1, 2, 0))
+        # plt.show()
+        # print(image_input.shape)
+        # afaf
+
         speed = np.array([[speed]]).astype(np.float32) / 30.0
 
         # Mapping of direction from 0.8.4 to 0.9.11
@@ -166,9 +173,8 @@ class CustomCILAgent(Agent):
         if speed > 10.0 and brake == 0.0:
             acc = 0.0
 
-        if np.abs(steer) > 0.15:
-            acc = acc * 0.25
-
+        # if np.abs(steer) > 0.15:
+        #     acc = acc * 0.25
         control = VehicleControl()
         control.steer = steer
         control.throttle = acc

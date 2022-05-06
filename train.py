@@ -22,6 +22,8 @@ from src.models.imitation import WarmStart
 from src.models.inference import run_benchmark, CustomCILAgent
 from src.models.utils import CarlaServer, kill_all_servers
 
+from scenario_runner.run_scenario import RunScenario
+
 from src.visualization.visualize import plot_trends
 
 import yaml

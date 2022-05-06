@@ -48,8 +48,8 @@ data_split:
 
 ##-----------------------------------------------------#
 # Path(s)
-# raw_data_path: '/home/hemanth/Desktop/carla_data/Town01/'
-raw_data_path: '../carla_data/Town01/'
+raw_data_path: '/home/hemanth/Desktop/carla_data/Town01/'
+# raw_data_path: '../carla_data/Town01/'
 logs_path: 'logs/'
 train_data_path: 'data/raw/train'
 val_data_path: 'data/raw/validation'

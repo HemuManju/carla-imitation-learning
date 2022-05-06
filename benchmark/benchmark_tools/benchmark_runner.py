@@ -599,7 +599,10 @@ def run_driving_benchmark(
             with make_carla_client(host, port) as client:
                 # Hack to fix for the issue 310, we force a reset, so it does not get
                 #  the positions on first server reset.
-                client.load_settings(CarlaSettings())
+                settings = CarlaSettings()
+                settings.set(QualityLevel='Low')
+
+                client.load_settings(settings)
                 client.start_episode(0)
 
                 # We instantiate the driving benchmark, that is the engine used to

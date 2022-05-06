@@ -50,7 +50,8 @@ def run_carla_client(args):
                     NumberOfVehicles=20,
                     NumberOfPedestrians=40,
                     WeatherId=random.choice([1, 3, 7, 8, 14]),
-                    QualityLevel=args.quality_level)
+                    QualityLevel=args.quality_level,
+                )
                 settings.randomize_seeds()
 
                 # Now we want to add a couple of cameras to the player vehicle.
@@ -82,7 +83,8 @@ def run_carla_client(args):
                         PointsPerSecond=100000,
                         RotationFrequency=10,
                         UpperFovLimit=10,
-                        LowerFovLimit=-30)
+                        LowerFovLimit=-30,
+                    )
                     settings.add_sensor(lidar)
 
             else:
@@ -95,7 +97,6 @@ def run_carla_client(args):
             # with a scene description containing the available start spots for
             # the player. Here we can provide a CarlaSettings object or a
             # CarlaSettings.ini file as string.
-
             scene = client.load_settings(settings)
 
             # Choose one player start at random.
@@ -128,7 +129,6 @@ def run_carla_client(args):
                 control.steer += random.uniform(-0.1, 0.1)
                 client.send_control(control)
 
-
                 # We can access the encoded data of a given image as numpy
                 # array using its "data" property. For instance, to get the
                 # depth value (normalized) at pixel X, Y
@@ -148,7 +148,8 @@ def run_carla_client(args):
                         throttle=0.5,
                         brake=0.0,
                         hand_brake=False,
-                        reverse=False)
+                        reverse=False,
+                    )
 
                 else:
 
@@ -174,59 +175,67 @@ def print_measurements(measurements):
     message = message.format(
         pos_x=player_measurements.transform.location.x,
         pos_y=player_measurements.transform.location.y,
-        speed=player_measurements.forward_speed * 3.6, # m/s -> km/h
+        speed=player_measurements.forward_speed * 3.6,  # m/s -> km/h
         col_cars=player_measurements.collision_vehicles,
         col_ped=player_measurements.collision_pedestrians,
         col_other=player_measurements.collision_other,
         other_lane=100 * player_measurements.intersection_otherlane,
         offroad=100 * player_measurements.intersection_offroad,
-        agents_num=number_of_agents)
+        agents_num=number_of_agents,
+    )
     print_over_same_line(message)
 
 
 def main():
     argparser = argparse.ArgumentParser(description=__doc__)
     argparser.add_argument(
-        '-v', '--verbose',
+        '-v',
+        '--verbose',
         action='store_true',
         dest='debug',
-        help='print debug information')
+        help='print debug information',
+    )
     argparser.add_argument(
         '--host',
         metavar='H',
         default='localhost',
-        help='IP of the host server (default: localhost)')
+        help='IP of the host server (default: localhost)',
+    )
     argparser.add_argument(
-        '-p', '--port',
+        '-p',
+        '--port',
         metavar='P',
         default=2000,
         type=int,
-        help='TCP port to listen to (default: 2000)')
+        help='TCP port to listen to (default: 2000)',
+    )
     argparser.add_argument(
-        '-a', '--autopilot',
-        action='store_true',
-        help='enable autopilot')
+        '-a', '--autopilot', action='store_true', help='enable autopilot'
+    )
+    argparser.add_argument('-l', '--lidar', action='store_true', help='enable Lidar')
     argparser.add_argument(
-        '-l', '--lidar',
-        action='store_true',
-        help='enable Lidar')
-    argparser.add_argument(
-        '-q', '--quality-level',
+        '-q',
+        '--quality-level',
         choices=['Low', 'Epic'],
         type=lambda s: s.title(),
         default='Epic',
-        help='graphics quality level, a lower level makes the simulation run considerably faster.')
+        help='graphics quality level, a lower level makes the simulation run considerably faster.',
+    )
     argparser.add_argument(
-        '-i', '--images-to-disk',
+        '-i',
+        '--images-to-disk',
         action='store_true',
         dest='save_images_to_disk',
-        help='save images (and Lidar data if active) to disk')
+        help='save images (and Lidar data if active) to disk',
+    )
     argparser.add_argument(
-        '-c', '--carla-settings',
+        '-c',
+        '--carla-settings',
         metavar='PATH',
         dest='settings_filepath',
         default=None,
-        help='Path to a "CarlaSettings.ini" file')
+        help='Path to a "CarlaSettings.ini" file',
+    )
 
     args = argparser.parse_args()
 

@@ -83,7 +83,11 @@ class CarlaSettings(object):
         S_SENSOR = 'CARLA/Sensor'
 
         def get_attribs(obj):
-            return [a for a in dir(obj) if not a.startswith('_') and not callable(getattr(obj, a))]
+            return [
+                a
+                for a in dir(obj)
+                if not a.startswith('_') and not callable(getattr(obj, a))
+            ]
 
         def add_section(section, obj, keys):
             for key in keys:
@@ -92,18 +96,20 @@ class CarlaSettings(object):
                         ini.add_section(section)
                     ini.set(section, key, str(getattr(obj, key)))
 
-        add_section(S_SERVER, self, [
-            'SynchronousMode',
-            'SendNonPlayerAgentsInfo'])
-        add_section(S_QUALITY, self, [
-            'QualityLevel'])
-        add_section(S_LEVEL, self, [
-            'NumberOfVehicles',
-            'NumberOfPedestrians',
-            'WeatherId',
-            'SeedVehicles',
-            'SeedPedestrians',
-            'DisableTwoWheeledVehicles'])
+        add_section(S_SERVER, self, ['SynchronousMode', 'SendNonPlayerAgentsInfo'])
+        add_section(S_QUALITY, self, ['QualityLevel'])
+        add_section(
+            S_LEVEL,
+            self,
+            [
+                'NumberOfVehicles',
+                'NumberOfPedestrians',
+                'WeatherId',
+                'SeedVehicles',
+                'SeedPedestrians',
+                'DisableTwoWheeledVehicles',
+            ],
+        )
 
         ini.add_section(S_SENSOR)
         ini.set(S_SENSOR, 'Sensors', ','.join(s.SensorName for s in self._sensors))

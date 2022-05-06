@@ -43,7 +43,9 @@ def get_preprocessing_pipeline(config):
     preproc = transforms.Compose(
         [
             transforms.Grayscale(),
-            transforms.Resize(size=(128, 128)),
+            transforms.Resize(
+                size=(config['image_resize'][1], config['image_resize'][2])
+            ),
             transforms.Normalize(mean=[0.5], std=[0.5]),
         ]
     )
