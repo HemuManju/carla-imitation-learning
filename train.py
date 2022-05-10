@@ -1,6 +1,5 @@
-import os
 from datetime import date
-import time
+from tkinter import E
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -19,10 +18,10 @@ from src.architectures.nets import (
 )
 
 from src.models.imitation import WarmStart
-from src.models.inference import run_benchmark, CustomCILAgent
-from src.models.utils import CarlaServer, kill_all_servers
+from src.evaluate.agents import CustomCILAgent
+from src.evaluate.experiments import CORL2017
 
-from scenario_runner.run_scenario import RunScenario
+from benchmark.run_benchmark import Benchmarking
 
 from src.visualization.visualize import plot_trends
 
@@ -154,17 +153,6 @@ with skip_run('run', 'replay_trained_model') as check, check():
     cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
     cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
 
-    # Setup carla path
-    os.environ["CARLA_ROOT"] = "/home/hemanth/Carla/CARLA_0.8.4"
-    kill_all_servers()
-    carla_server = CarlaServer(cfg['carla_server'])
-    host, server_port = carla_server.start_server()
-    time.sleep(5)
-
-    # Update the benchmark config
-    cfg['benchmark_config']['host'] = 'localhost'
-    cfg['benchmark_config']['port'] = server_port
-
     restore_config = {'checkpoint_path': 'logs/2022-05-04/WARMSTART/warm_start.ckpt'}
     model = WarmStart.load_from_checkpoint(
         restore_config['checkpoint_path'],
@@ -172,13 +160,9 @@ with skip_run('run', 'replay_trained_model') as check, check():
         net=CIRLBasePolicy(cfg),
         data_loader=None,
     )
-    agent = CustomCILAgent(model, cfg)
-    try:
-        run_benchmark(agent, benchmark_config=cfg['benchmark_config'])
 
-    except KeyboardInterrupt:
-        kill_all_servers()
-        print('-' * 16 + 'User interrupted' + '-' * 16)
-    finally:
-        print('-' * 16 + 'Finished benchmarks' + '-' * 16)
-        kill_all_servers()
+    experiment_cfg = yaml.load(open('configs/experiments.yaml'), Loader=yaml.SafeLoader)
+    experiment_suite = CORL2017(experiment_cfg)
+    agent = CustomCILAgent(model, cfg)
+    benchmark = Benchmarking(cfg, agent, experiment_suite)
+    benchmark.run()

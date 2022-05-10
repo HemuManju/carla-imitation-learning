@@ -80,5 +80,6 @@ carla_server:
   enable_map_assets: True
   enable_rendering: True
   show_display: True
+  carla_path: '/home/hemanth/Carla/CARLA_0.9.11'
 
 pytorch_seed: 1337

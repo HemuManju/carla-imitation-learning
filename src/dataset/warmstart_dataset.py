@@ -25,9 +25,6 @@ def concatenate_samples(samples, config):
 
     preproc = get_preprocessing_pipeline(config)
     images = preproc(images).squeeze(1)
-    plt.imshow(images.permute(1, 2, 0))
-    plt.show()
-    afaf
     last_data = samples[-1]['json']
 
     if last_data['direction'] in [-1, 5, 6]:

@@ -1,0 +1,63 @@
+##------------------Experiment config------------------##
+weathers:
+  [
+    'ClearNoon',
+    'SoftRainNoon',
+    'HardRainNoon',
+    'ClearSunset',
+    'SoftRainSunset',
+    'HardRainSunset',
+  ]
+towns: ['Town01']
+navigation_types: ['straight', 'turn', 'full']
+background_activity:
+  n_vehicles: 0
+  n_walkers: 0
+  tm_hybrid_mode: True
+  seed: null
+
+others:
+  max_time_idle: 1200
+  max_time_episode: 6400
+
+##-----------------------------------------------------#
+# Other parameters
+image_size: [1, 224, 224]
+image_resize: [1, 128, 128]
+alpha: 0.75
+beta: 0.1
+
+##------------------Vehicle config------------------##
+vehicle:
+  target_speed: 30 # Km/hr
+  blueprint: 'vehicle.lincoln.mkz2017'
+  sensors:
+    lane_invasion:
+      type: 'sensor.other.lane_invasion'
+    collision:
+      type: 'sensor.other.collision'
+    imu:
+      type: 'sensor.other.imu'
+    obstacle:
+      type: 'sensor.other.obstacle'
+      distance: 5
+      hit_radius: 0.5
+      only_dynamics: True
+    rgb:
+      type: 'sensor.camera.rgb'
+      image_size_x: 256
+      image_size_y: 256
+      transform: '1.25,0,1.85,-90,0,0'
+  sensors_process:
+    normalized: True
+    gray_scale: True
+  path_points: [[220, 216]]
+
+##------------------Summary writer config------------------##
+summary_writer:
+  data_write_path: '../../../Desktop/carla_data/Town01/'
+
+##------------------Simulation config------------------##
+simulation:
+  seed: 1337
+  sync: True
