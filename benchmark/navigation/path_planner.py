@@ -86,7 +86,7 @@ class PathPlanner(object):
     def get_next_command(self):
         self.run_step()
         waypoint, direction = self._local_planner.get_incoming_waypoint_and_direction(
-            steps=1
+            steps=0
         )
         return {'waypoint': waypoint, 'direction': direction}
 

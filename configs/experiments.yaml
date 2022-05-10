@@ -9,7 +9,7 @@ weathers:
     'HardRainSunset',
   ]
 towns: ['Town01']
-navigation_types: ['straight', 'turn', 'full']
+navigation_types: ['one_curve'] # 'navigation', 'one_curve',
 background_activity:
   n_vehicles: 0
   n_walkers: 0
@@ -17,7 +17,7 @@ background_activity:
   seed: null
 
 others:
-  max_time_idle: 1200
+  max_time_idle: 500
   max_time_episode: 6400
 
 ##-----------------------------------------------------#
@@ -47,7 +47,7 @@ vehicle:
       type: 'sensor.camera.rgb'
       image_size_x: 256
       image_size_y: 256
-      transform: '1.25,0,1.85,-90,0,0'
+      transform: '1.25,0,1.85,0,0,0'
   sensors_process:
     normalized: True
     gray_scale: True

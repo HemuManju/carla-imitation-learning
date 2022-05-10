@@ -5,6 +5,12 @@ from benchmark.basic_experiment import BasicExperiment
 from benchmark.navigation.path_planner import PathPlanner
 
 
+try:
+    import carla
+except ModuleNotFoundError:
+    pass
+
+
 def read_txt_files(read_path):
     values = pd.read_csv(
         read_path, sep=" ", header=None, index_col=False,
@@ -21,9 +27,13 @@ class CORL2017(BasicExperiment):
 
     def _construct_experiment_config(self, base_config, weather, town, navigation_type):
         # Update the spawn points
-        path_points = read_txt_files(
-            f'benchmark/corl2017/096/{navigation_type}_{town}.txt'
-        )
+        data = pd.read_xml(
+            f'benchmark/corl2017/{town}_{navigation_type}.xml', xpath=".//waypoint"
+        ).values.tolist()
+        path_points = []
+        for i in range(0, len(data), 2):
+            path_points.append([data[i], data[i + 1]])
+
         base_config['vehicle']['path_points'] = path_points
         base_config['town'] = town
         base_config['weather'] = weather
@@ -32,9 +42,9 @@ class CORL2017(BasicExperiment):
 
     def get_experiment_configs(self):
         all_configs = []
-        for weather in self.cfg['weathers']:
-            for town in self.cfg['towns']:
-                for navigation_type in self.cfg['navigation_types']:
+        for navigation_type in self.cfg['navigation_types']:
+            for weather in self.cfg['weathers']:
+                for town in self.cfg['towns']:
                     config = self._construct_experiment_config(
                         self.cfg.copy(), weather, town, navigation_type
                     )
@@ -51,23 +61,11 @@ class CORL2017(BasicExperiment):
         self.done_time_idle = False
         self.done_falling = False
         self.done_time_episode = False
-
-        # hero variables
-        self.last_location = None
-        self.last_velocity = 0
-
-        # Sensor stack
-        self.prev_image_0 = None
-        self.prev_image_1 = None
-        self.prev_image_2 = None
-
-        self.last_heading_deviation = 0
-
         # Set the planner
         self.route_planner = PathPlanner(
             self.hero, target_speed=self.cfg['vehicle']['target_speed'],
         )
-        self.route_planner.set_destination(end_location=self.end_point.location)
+        self.route_planner.set_destination(self.end_point.location)
         return None
 
     def get_observation(self, sensor_data):
@@ -106,4 +104,9 @@ class CORL2017(BasicExperiment):
         self.time_episode += 1
         self.done_time_episode = self.max_time_episode < self.time_episode
         self.done_falling = self.hero.get_location().z < -0.5
-        return self.done_time_idle or self.done_falling or self.done_time_episode
+        return (
+            self.done_time_idle
+            or self.done_falling
+            or self.done_time_episode
+            or self.route_planner.done()
+        )

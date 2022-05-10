@@ -166,3 +166,4 @@ with skip_run('run', 'replay_trained_model') as check, check():
     agent = CustomCILAgent(model, cfg)
     benchmark = Benchmarking(cfg, agent, experiment_suite)
     benchmark.run()
+

@@ -12,6 +12,7 @@ except ModuleNotFoundError:
 from benchmark.agent import Agent
 
 from src.dataset.utils import get_preprocessing_pipeline
+import matplotlib.pyplot as plt
 
 
 class CustomCILAgent(Agent):
@@ -64,7 +65,7 @@ class CustomCILAgent(Agent):
         # Carla vehicle control
         control = carla.VehicleControl()
         control.steer = steer
-        control.throttle = acc
+        control.throttle = acc * 0.75
         control.brake = brake
         control.hand_brake = 0
         control.reverse = 0
