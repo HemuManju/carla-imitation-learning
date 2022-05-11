@@ -71,8 +71,6 @@ benchmark_config:
 # Carla server parameters
 carla_server:
   host: 'localhost'
-  timeout: 2.0
-  timestep: 0.1
   retries_on_error: 25
   resolution_x: 600
   resolution_y: 600

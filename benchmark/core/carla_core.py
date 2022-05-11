@@ -27,8 +27,8 @@ from .helper import join_dicts
 BASE_CORE_CONFIG = {
     "host": "localhost",  # Client host
     "timeout": 10.0,  # Timeout of the client
-    "timestep": 0.01,  # Time step of the simulation
-    "retries_on_error": 10,  # Number of tries to connect to the client
+    "timestep": 0.1,  # Time step of the simulation
+    "retries_on_error": 25,  # Number of tries to connect to the client
     "resolution_x": 600,  # Width of the server spectator camera
     "resolution_y": 600,  # Height of the server spectator camera
     "quality_level": "Low",  # Quality level of the simulation. Can be 'Low', 'High', 'Epic'
@@ -104,8 +104,6 @@ class CarlaCore:
         server_command += [
             "--carla-rpc-port={}".format(self.server_port),
             "-quality-level={}".format(self.config["quality_level"]),
-            "-benchmark",
-            "-fps=10",
         ]
 
         server_command_text = " ".join(map(str, server_command))

@@ -9,12 +9,13 @@ weathers:
     'HardRainSunset',
   ]
 towns: ['Town01']
-navigation_types: ['one_curve'] # 'navigation', 'one_curve',
+navigation_types: ['navigation', 'straight', 'one_curve']
 background_activity:
-  n_vehicles: 0
-  n_walkers: 0
+  n_vehicles: 20
+  n_walkers: 100
   tm_hybrid_mode: True
-  seed: null
+  seed: 1337
+repeat: 1
 
 others:
   max_time_idle: 500

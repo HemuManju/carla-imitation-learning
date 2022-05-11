@@ -148,7 +148,7 @@ with skip_run('skip', 'figure_plotting') as check, check():
     ]
     plot_trends(paths, legends)
 
-with skip_run('run', 'replay_trained_model') as check, check():
+with skip_run('skip', 'replay_trained_model') as check, check():
     # Load the configuration
     cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
     cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'

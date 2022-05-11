@@ -1,9 +1,10 @@
 import math
+from re import S
 import pandas as pd
 
 from benchmark.basic_experiment import BasicExperiment
 from benchmark.navigation.path_planner import PathPlanner
-
+from benchmark.navigation.utils import distance_vehicle, get_acceleration, get_speed
 
 try:
     import carla
@@ -61,12 +62,43 @@ class CORL2017(BasicExperiment):
         self.done_time_idle = False
         self.done_falling = False
         self.done_time_episode = False
+        self.n_collision = 0
+
         # Set the planner
         self.route_planner = PathPlanner(
             self.hero, target_speed=self.cfg['vehicle']['target_speed'],
         )
         self.route_planner.set_destination(self.end_point.location)
         return None
+
+    def get_distance_to_destination(self):
+        distance = distance_vehicle(
+            self.route_planner._local_planner._waypoints_queue[-1][0],
+            self.hero.get_transform(),
+        )
+        return distance
+
+    def process_sensor_data(self, sensor_data):
+        data = {}
+
+        data['collision_predistrain'] = 0
+        data['collision_vehicle'] = 0
+        data['collision_other'] = 0
+
+        # Get collision information
+        if 'collision' in sensor_data.keys():
+            self.n_collision += 1
+
+            actor = sensor_data['collision'][0]
+            print(actor.semantic_tags)
+            if actor.semantic_tags == 4:
+                data['collision_predistrain'] = 1
+            elif actor.semantic_tags == 10:
+                data['collision_vehicle'] = 1
+            else:
+                data['collision_other'] = 1
+
+        return data
 
     def get_observation(self, sensor_data):
         """Function to do all the post processing of observations (sensor data).
@@ -77,17 +109,47 @@ class CORL2017(BasicExperiment):
         as well as a variable with additional information about such observation.
         The information variable can be empty
         """
+
         observation = {}
         observation['image'] = sensor_data['rgb']
-        command = self.route_planner.get_next_command()
+        command = self.route_planner.get_next_command(debug=False)
         observation['command'] = command['direction'].value
 
         return observation
 
-    def get_data_to_log(self, sensor_data, observation):
-        #
+    def get_data_to_log(self, sensor_data, observation, control):
+        data = {}
 
-        return None
+        # Simulation parameters
+        data['weather'] = self.config['weather']
+        data['town'] = self.config['town']
+        data['command'] = observation['command']
+        data['start_points'] = [
+            self.start_point.location.x,
+            self.start_point.location.y,
+        ]
+        data['end_points'] = [self.end_point.location.x, self.end_point.location.y]
+
+        # Vehicle parameters
+        location = self.hero.get_location()
+        data['pos_x'] = location.x
+        data['pos_y'] = location.y
+        if control is None:
+            data['steer'] = 0
+            data['throttle'] = 0
+            data['brake'] = 0
+        else:
+            data['steer'] = control.steer
+            data['throttle'] = control.throttle
+            data['brake'] = control.brake
+        data['acceleration'] = get_acceleration(self.hero)
+        data['speed'] = get_speed(self.hero)
+
+        # Sensor parameters
+        sensor_summary = self.process_sensor_data(sensor_data)
+        data.update(sensor_summary)
+
+        return data
 
     def get_speed(self, hero):
         """Computes the speed of the hero vehicle in Km/h"""
@@ -104,9 +166,14 @@ class CORL2017(BasicExperiment):
         self.time_episode += 1
         self.done_time_episode = self.max_time_episode < self.time_episode
         self.done_falling = self.hero.get_location().z < -0.5
+
+        # Distance to final waypoint
+        distance = self.get_distance_to_destination()
         return (
             self.done_time_idle
             or self.done_falling
             or self.done_time_episode
             or self.route_planner.done()
+            or (distance < 2.5)
+            or (self.n_collision > 200)
         )

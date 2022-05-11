@@ -83,8 +83,8 @@ class PathPlanner(object):
         control.hand_brake = False
         return control
 
-    def get_next_command(self):
-        self.run_step()
+    def get_next_command(self, debug=False):
+        self.run_step(debug)
         waypoint, direction = self._local_planner.get_incoming_waypoint_and_direction(
             steps=0
         )
@@ -158,7 +158,7 @@ class PathPlanner(object):
         end_location = end_waypoint.transform.location
         return self._global_planner.trace_route(start_location, end_location)
 
-    def run_step(self):
+    def run_step(self, debug=False):
         """Execute one step of navigation."""
         hazard_detected = False
 
@@ -185,7 +185,7 @@ class PathPlanner(object):
         if self.affected_by_tlight:
             hazard_detected = True
 
-        control = self._local_planner.run_step()
+        control = self._local_planner.run_step(debug)
         if hazard_detected:
             control = self.add_emergency_stop(control)
 

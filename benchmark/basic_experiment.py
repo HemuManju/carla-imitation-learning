@@ -25,7 +25,7 @@ from .core.helper import join_dicts
 BASE_EXPERIMENT_CONFIG = {
     "host": "localhost",  # Client host
     "timeout": 10.0,  # Timeout of the client
-    "timestep": 0.05,  # Time step of the simulation
+    "timestep": 0.1,  # Time step of the simulation
     "retries_on_error": 10,  # Number of tries to connect to the client
     "resolution_x": 600,  # Width of the server spectator camera
     "resolution_y": 600,  # Height of the server spectator camera
@@ -94,11 +94,6 @@ class BasicExperiment(object):
 
         self.tm_port = server_port // 10 + server_port % 10
         while is_used(self.tm_port):
-            print(
-                "Traffic manager's port "
-                + str(self.tm_port)
-                + " is already being used. Checking the next one"
-            )
             self.tm_port += 1
 
         if self.traffic_manager is None:
@@ -335,6 +330,7 @@ class BasicExperiment(object):
         )
         self.world.tick()
         time.sleep(0.5)
+        self.traffic_manager = None
 
     def get_experiment_configs(self):
         return NotImplementedError

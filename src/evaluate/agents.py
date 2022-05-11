@@ -42,7 +42,6 @@ class CustomCILAgent(Agent):
         # plt.show()
         # print(image_input.shape)
         # afaf
-        # Mapping of direction from 0.8.4 to 0.9.11
         if observation['command'] in [-1, 5, 6]:
             command = 4
         else:
