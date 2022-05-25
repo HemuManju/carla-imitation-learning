@@ -31,6 +31,7 @@ class CORL2017(BasicExperiment):
         data = pd.read_xml(
             f'benchmark/corl2017/{town}_{navigation_type}.xml', xpath=".//waypoint"
         ).values.tolist()
+
         path_points = []
         for i in range(0, len(data), 2):
             path_points.append([data[i], data[i + 1]])
@@ -38,6 +39,7 @@ class CORL2017(BasicExperiment):
         base_config['vehicle']['path_points'] = path_points
         base_config['town'] = town
         base_config['weather'] = weather
+        base_config['navigation_type'] = navigation_type
 
         return base_config
 
@@ -63,6 +65,8 @@ class CORL2017(BasicExperiment):
         self.done_falling = False
         self.done_time_episode = False
         self.n_collision = 0
+        self.n_lane_invasion = 0
+        self.distance = 2000
 
         # Set the planner
         self.route_planner = PathPlanner(
@@ -90,7 +94,6 @@ class CORL2017(BasicExperiment):
             self.n_collision += 1
 
             actor = sensor_data['collision'][0]
-            print(actor.semantic_tags)
             if actor.semantic_tags == 4:
                 data['collision_predistrain'] = 1
             elif actor.semantic_tags == 10:
@@ -98,6 +101,13 @@ class CORL2017(BasicExperiment):
             else:
                 data['collision_other'] = 1
 
+        # Get lane invasion information
+        if 'lane_invasion' in sensor_data.keys():
+
+            self.n_lane_invasion += 1
+            data['n_lane_invasion'] = self.n_lane_invasion
+        else:
+            data['n_lane_invasion'] = 0
         return data
 
     def get_observation(self, sensor_data):
@@ -129,6 +139,10 @@ class CORL2017(BasicExperiment):
             self.start_point.location.y,
         ]
         data['end_points'] = [self.end_point.location.x, self.end_point.location.y]
+        data['reached_destination'] = (self.distance < 2.5) or self.route_planner.done()
+        data['done_time_episode'] = self.done_time_episode
+        data['n_collisions'] = self.n_collision
+        data['idle_time'] = self.time_idle
 
         # Vehicle parameters
         location = self.hero.get_location()
@@ -168,12 +182,12 @@ class CORL2017(BasicExperiment):
         self.done_falling = self.hero.get_location().z < -0.5
 
         # Distance to final waypoint
-        distance = self.get_distance_to_destination()
+        self.distance = self.get_distance_to_destination()
         return (
             self.done_time_idle
             or self.done_falling
             or self.done_time_episode
             or self.route_planner.done()
-            or (distance < 2.5)
+            or (self.distance < 2.5)
             or (self.n_collision > 200)
         )

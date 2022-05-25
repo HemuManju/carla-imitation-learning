@@ -22,6 +22,7 @@ from src.evaluate.agents import CustomCILAgent
 from src.evaluate.experiments import CORL2017
 
 from benchmark.run_benchmark import Benchmarking
+from benchmark.summary import summarize
 
 from src.visualization.visualize import plot_trends
 
@@ -75,6 +76,59 @@ with skip_run('skip', 'warm_starting') as check, check():
             enable_progress_bar=False,
         )
     trainer.fit(model)
+
+with skip_run('run', 'warm_starting_navigation_type') as check, check():
+    # Load the configuration
+    cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
+
+    for navigation_type in cfg['navigation_types']:
+        cfg['logs_path'] = (
+            cfg['logs_path'] + str(date.today()) + f'/WARMSTART/{navigation_type}'
+        )
+
+        cfg['raw_data_path'] = cfg['raw_data_path'] + f'/{navigation_type}'
+
+        # Random seed
+        gpus = get_num_gpus()
+        torch.manual_seed(cfg['pytorch_seed'])
+
+        # Checkpoint
+        checkpoint_callback = pl.callbacks.ModelCheckpoint(
+            monitor='losses/val_loss',
+            dirpath=cfg['logs_path'],
+            save_top_k=1,
+            filename='warm_start',
+            mode='min',
+            save_last=True,
+        )
+        logger = pl.loggers.TensorBoardLogger(cfg['logs_path'], name='warm_start')
+
+        # Setup
+        net = CIRLBasePolicy(cfg)
+        # actions = net(net.example_input_array, net.example_command)
+        # print(actions.shape)  # verification
+
+        # Dataloader
+        data_loader = warmstart_dataset.webdataset_data_iterator(cfg)
+        model = WarmStart(cfg, net, data_loader)
+        if cfg['check_point_path'] is None:
+            trainer = pl.Trainer(
+                gpus=gpus,
+                max_epochs=cfg['NUM_EPOCHS'],
+                logger=logger,
+                callbacks=[checkpoint_callback],
+                enable_progress_bar=True,
+            )
+        else:
+            trainer = pl.Trainer(
+                gpus=gpus,
+                max_epochs=cfg['NUM_EPOCHS'],
+                logger=logger,
+                callbacks=[checkpoint_callback],
+                resume_from_checkpoint=cfg['check_point_path'],
+                enable_progress_bar=False,
+            )
+        trainer.fit(model)
 
 with skip_run('skip', 'warm_starting_with_future_latent') as check, check():
     # Load the configuration
@@ -148,7 +202,7 @@ with skip_run('skip', 'figure_plotting') as check, check():
     ]
     plot_trends(paths, legends)
 
-with skip_run('skip', 'replay_trained_model') as check, check():
+with skip_run('skip', 'benchmark_trained_model') as check, check():
     # Load the configuration
     cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
     cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
@@ -167,3 +221,10 @@ with skip_run('skip', 'replay_trained_model') as check, check():
     benchmark = Benchmarking(cfg, agent, experiment_suite)
     benchmark.run()
 
+with skip_run('skip', 'summarize_benchmark') as check, check():
+    # Load the configuration
+    cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
+    cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
+
+    read_path = 'logs/benchmark_results/run/measurements.csv'
+    summarize(read_path)

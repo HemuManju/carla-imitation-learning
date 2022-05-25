@@ -1,18 +1,17 @@
 ##------------------Experiment config------------------##
-weathers:
-  [
+weathers: [
     'ClearNoon',
-    'SoftRainNoon',
+    # 'SoftRainNoon',
     'HardRainNoon',
     'ClearSunset',
-    'SoftRainSunset',
+    # 'SoftRainSunset',
     'HardRainSunset',
   ]
 towns: ['Town01']
 navigation_types: ['navigation', 'straight', 'one_curve']
 background_activity:
-  n_vehicles: 20
-  n_walkers: 100
+  n_vehicles: 0
+  n_walkers: 0
   tm_hybrid_mode: True
   seed: 1337
 repeat: 1

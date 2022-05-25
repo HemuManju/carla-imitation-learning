@@ -143,8 +143,10 @@ class BranchNet(pl.LightningModule):
         self.right_turn = nn.Sequential(
             nn.LazyLinear(self.layer_size),
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.Linear(self.layer_size, self.layer_size),
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.Linear(self.layer_size, output_size),
             nn.Tanh(),
         )
@@ -152,8 +154,10 @@ class BranchNet(pl.LightningModule):
         self.left_turn = nn.Sequential(
             nn.LazyLinear(self.layer_size),
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.Linear(self.layer_size, self.layer_size),
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.Linear(self.layer_size, output_size),
             nn.Tanh(),
         )
@@ -161,8 +165,10 @@ class BranchNet(pl.LightningModule):
         self.straight = nn.Sequential(
             nn.LazyLinear(self.layer_size),
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.Linear(self.layer_size, self.layer_size),
             nn.ReLU(),
+            nn.Dropout(p=0.2),
             nn.Linear(256, output_size),
             nn.Tanh(),
         )
@@ -220,7 +226,12 @@ class BaseConvNet(pl.LightningModule):
             nn.BatchNorm2d(256),
         )
         self.fc = nn.Sequential(
-            nn.LazyLinear(512), nn.ReLU(), nn.Linear(512, 512), nn.ReLU()
+            nn.LazyLinear(512),
+            nn.ReLU(),
+            nn.Dropout(p=0.2),
+            nn.Linear(512, 512),
+            nn.ReLU(),
+            nn.Dropout(p=0.2),
         )
 
     def forward(self, x):
@@ -251,7 +262,6 @@ class CIRLBasePolicy(pl.LightningModule):
     def forward(self, x, command):
         # Testing
         # interactive_show_grid(x[0])
-
         embedding = self.back_bone_net(x)
         actions = self.action_net(embedding, command)
         return actions

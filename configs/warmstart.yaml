@@ -1,6 +1,6 @@
 ##-----------------------------------------------------#
 # Training parameters
-NUM_EPOCHS: 100
+NUM_EPOCHS: 200
 BATCH_SIZE: 64
 LEARNING_RATE: 0.0001
 DROP_OUT: 0.20
@@ -9,12 +9,12 @@ VALID_SIZE: 0.15
 
 ##-----------------------------------------------------#
 # Data Parameters
-obs_size: 1
+obs_size: 3
 n_actions: 3
 frame_skip: 4
 branch_weight: 1
 speed_weight: 1
-number_workers: 4
+number_workers: 8
 
 ##-----------------------------------------------------#
 # Other parameters
@@ -25,15 +25,15 @@ beta: 0.1
 
 ##-----------------------------------------------------#
 # Data splitting scheme
+navigation_types: ['straight', 'one_curve', 'navigation']
 data_split:
   training:
     town: ['Town01']
-    season:
-      [
-        ClearNoon',
-        'SoftRainNoon',
+    season: [
+        'ClearNoon',
+        # 'SoftRainNoon',
         'HardRainNoon',
-        'SoftRainSunset',
+        # 'SoftRainSunset',
         'HardRainSunset',
       ]
     behavior: ['normal', 'catious']
@@ -48,14 +48,14 @@ data_split:
 
 ##-----------------------------------------------------#
 # Path(s)
-raw_data_path: '/home/hemanth/Desktop/carla_data/Town01/'
+raw_data_path: '/home/hemanth/Desktop/carla_data/Town01_NAVIGATION/'
 # raw_data_path: '../carla_data/Town01/'
 logs_path: 'logs/'
 train_data_path: 'data/raw/train'
 val_data_path: 'data/raw/validation'
 test_data_path: 'data/raw/test'
 
-check_point_path: null
+check_point_path: null # 'logs/2022-05-04/WARMSTART/last.ckpt'
 
 ##-----------------------------------------------------#
 # Benchmark config

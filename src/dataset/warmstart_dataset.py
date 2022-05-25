@@ -1,4 +1,4 @@
-from email.mime import image
+
 from importlib.resources import path
 from pathlib import Path
 import natsort
