@@ -10,7 +10,10 @@ import math
 import numpy as np
 import networkx as nx
 
-import carla
+try:
+    import carla
+except ModuleNotFoundError:
+    pass
 from .local_planner import RoadOption
 from .utils import vector
 

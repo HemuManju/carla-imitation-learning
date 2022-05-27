@@ -7,7 +7,11 @@
 from collections import deque
 import math
 import numpy as np
-import carla
+
+try:
+    import carla
+except ModuleNotFoundError:
+    pass
 from .utils import get_speed
 
 

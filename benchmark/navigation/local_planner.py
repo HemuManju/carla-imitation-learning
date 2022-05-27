@@ -8,7 +8,10 @@ from enum import Enum
 from collections import deque
 import random
 
-import carla
+try:
+    import carla
+except ModuleNotFoundError:
+    pass
 from .controller import VehiclePIDController
 from .utils import draw_waypoints, get_speed
 

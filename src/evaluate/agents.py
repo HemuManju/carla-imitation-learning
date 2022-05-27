@@ -21,6 +21,7 @@ class CustomCILAgent(Agent):
         Agent.__init__(self)
         self.debug = debug
         self.model = model
+        self.config = config
 
         # Freeze the weights and put the model in eval mode
         if torch.cuda.is_available():
@@ -33,19 +34,22 @@ class CustomCILAgent(Agent):
         self.preprocess = get_preprocessing_pipeline(config)
 
     def compute_control(self, observation):
-        image = Image.fromarray(observation['image'])
-        convert = transforms.Compose(
-            [transforms.PILToTensor(), transforms.ConvertImageDtype(torch.float)]
-        )
-        image_input = self.preprocess(convert(image)).unsqueeze(0)
-        # plt.imshow(image_input[0, :, :, :].permute(1, 2, 0))
+        image_input = torch.swapaxes(self.preprocess(observation['image']), 1, 0)
+
+        # image_input = transforms.functional.rotate(image_input, angle=90)
+        # print(image_input.shape)
+        # test = image_input[0, :, :, :].permute(1, 2, 0)
+        # plt.imshow(test[:, :, 0], cmap='gray')
         # plt.show()
+        # afaf
         # print(image_input.shape)
         # afaf
         if observation['command'] in [-1, 5, 6]:
             command = 4
         else:
             command = observation['command']
+
+        command = 3
 
         # Get the control
         acc, steer, brake = self._control_function(image_input, command)

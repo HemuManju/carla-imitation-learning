@@ -12,6 +12,9 @@ class Imitation(pl.LightningModule):
         self.net = net
         self.data_loader = data_loader
 
+        # Save hyperparameters
+        self.save_hyperparameters(self.h_params)
+
     def forward(self, x):
         output = self.net.forward(x)
         return output
@@ -70,6 +73,9 @@ class WarmStart(pl.LightningModule):
         self.net = net
         self.data_loader = data_loader
 
+        # Save hyperparameters
+        self.save_hyperparameters(self.h_params)
+
     def forward(self, x, command):
         output = self.net.forward(x, command)
         return output
@@ -106,7 +112,7 @@ class WarmStart(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = Adam(self.parameters(), lr=self.h_params['LEARNING_RATE'])
         lr_scheduler = ReduceLROnPlateau(
-            optimizer, patience=10, factor=0.9, verbose=True
+            optimizer, patience=5, factor=0.9, verbose=True
         )
 
         scheduler = {
@@ -115,5 +121,5 @@ class WarmStart(pl.LightningModule):
             # val_checkpoint_on is val_loss passed in as checkpoint_on
             'monitor': 'losses/val_loss',
         }
-        return [optimizer]
+        return [optimizer], [scheduler]
 

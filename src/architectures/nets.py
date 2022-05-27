@@ -135,18 +135,19 @@ class CNNAutoEncoder(pl.LightningModule):
 
 
 class BranchNet(pl.LightningModule):
-    def __init__(self, output_size):
+    def __init__(self, output_size, dropout):
         super(BranchNet, self).__init__()
         self.output_size = output_size
         self.layer_size = 256
+        self.dropout = dropout
 
         self.right_turn = nn.Sequential(
             nn.LazyLinear(self.layer_size),
             nn.ReLU(),
-            nn.Dropout(p=0.2),
+            nn.Dropout(p=self.dropout),
             nn.Linear(self.layer_size, self.layer_size),
             nn.ReLU(),
-            nn.Dropout(p=0.2),
+            nn.Dropout(p=self.dropout),
             nn.Linear(self.layer_size, output_size),
             nn.Tanh(),
         )
@@ -154,10 +155,10 @@ class BranchNet(pl.LightningModule):
         self.left_turn = nn.Sequential(
             nn.LazyLinear(self.layer_size),
             nn.ReLU(),
-            nn.Dropout(p=0.2),
+            nn.Dropout(p=self.dropout),
             nn.Linear(self.layer_size, self.layer_size),
             nn.ReLU(),
-            nn.Dropout(p=0.2),
+            nn.Dropout(p=self.dropout),
             nn.Linear(self.layer_size, output_size),
             nn.Tanh(),
         )
@@ -165,10 +166,10 @@ class BranchNet(pl.LightningModule):
         self.straight = nn.Sequential(
             nn.LazyLinear(self.layer_size),
             nn.ReLU(),
-            nn.Dropout(p=0.2),
+            nn.Dropout(p=self.dropout),
             nn.Linear(self.layer_size, self.layer_size),
             nn.ReLU(),
-            nn.Dropout(p=0.2),
+            nn.Dropout(p=self.dropout),
             nn.Linear(256, output_size),
             nn.Tanh(),
         )
@@ -176,8 +177,10 @@ class BranchNet(pl.LightningModule):
         self.lane_follow = nn.Sequential(
             nn.LazyLinear(self.layer_size),
             nn.ReLU(),
+            nn.Dropout(p=self.dropout),
             nn.Linear(self.layer_size, self.layer_size),
             nn.ReLU(),
+            nn.Dropout(p=self.dropout),
             nn.Linear(self.layer_size, output_size),
             nn.Tanh(),
         )
@@ -251,18 +254,20 @@ class CIRLBasePolicy(pl.LightningModule):
         self.cfg = model_config
         obs_size = self.cfg['obs_size']
         n_actions = self.cfg['n_actions']
+        dropout = self.cfg['DROP_OUT']
 
         # Example inputs
         self.example_input_array = torch.randn((5, obs_size, 256, 256))
         self.example_command = torch.tensor([1, 0, 2, 3, 1])
 
         self.back_bone_net = BaseConvNet(obs_size)
-        self.action_net = BranchNet(output_size=n_actions)
+        self.action_net = BranchNet(output_size=n_actions, dropout=dropout)
 
     def forward(self, x, command):
         # Testing
-        # interactive_show_grid(x[0])
+        interactive_show_grid(x[0])
         embedding = self.back_bone_net(x)
+        print(embedding.shape)
         actions = self.action_net(embedding, command)
         return actions
 

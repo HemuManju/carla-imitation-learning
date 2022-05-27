@@ -77,16 +77,16 @@ with skip_run('skip', 'warm_starting') as check, check():
         )
     trainer.fit(model)
 
-with skip_run('run', 'warm_starting_navigation_type') as check, check():
+with skip_run('skip', 'warm_starting_navigation_type') as check, check():
+
     # Load the configuration
     cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
+    raw_data_path = cfg['raw_data_path']
+    logs_path = cfg['logs_path']
 
     for navigation_type in cfg['navigation_types']:
-        cfg['logs_path'] = (
-            cfg['logs_path'] + str(date.today()) + f'/WARMSTART/{navigation_type}'
-        )
-
-        cfg['raw_data_path'] = cfg['raw_data_path'] + f'/{navigation_type}'
+        cfg['logs_path'] = logs_path + str(date.today()) + f'/{navigation_type}'
+        cfg['raw_data_path'] = raw_data_path + f'/{navigation_type}'
 
         # Random seed
         gpus = get_num_gpus()
@@ -97,7 +97,6 @@ with skip_run('run', 'warm_starting_navigation_type') as check, check():
             monitor='losses/val_loss',
             dirpath=cfg['logs_path'],
             save_top_k=1,
-            filename='warm_start',
             mode='min',
             save_last=True,
         )
@@ -207,7 +206,9 @@ with skip_run('skip', 'benchmark_trained_model') as check, check():
     cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
     cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
 
-    restore_config = {'checkpoint_path': 'logs/2022-05-04/WARMSTART/warm_start.ckpt'}
+    restore_config = {
+        'checkpoint_path': 'logs/2022-05-27/one_curve/epoch=0-step=1564.ckpt'
+    }
     model = WarmStart.load_from_checkpoint(
         restore_config['checkpoint_path'],
         hparams=cfg,

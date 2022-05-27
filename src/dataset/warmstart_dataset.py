@@ -1,4 +1,3 @@
-
 from importlib.resources import path
 from pathlib import Path
 import natsort
@@ -19,18 +18,19 @@ def concatenate_samples(samples, config):
     combined_data = {
         k: [d.get(k) for d in samples if k in d] for k in set().union(*samples)
     }
-    images = transforms.functional.rotate(
-        torch.stack(combined_data['jpeg'], dim=0), angle=90
-    )
+
+    # Crop the image
+    crop_size = 256 - (2 * config['image_resize'][1])
+    images = torch.stack(combined_data['jpeg'], dim=0)[:, :, crop_size:, :]
 
     preproc = get_preprocessing_pipeline(config)
     images = preproc(images).squeeze(1)
     last_data = samples[-1]['json']
 
-    if last_data['direction'] in [-1, 5, 6]:
+    if last_data['modified_direction'] in [-1, 5, 6]:
         command = 4
     else:
-        command = last_data['direction']
+        command = last_data['modified_direction']
 
     action = torch.tensor(
         [last_data['throttle'], last_data['steer'], last_data['brake']]

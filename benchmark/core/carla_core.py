@@ -139,7 +139,6 @@ class CarlaCore:
                         e, i + 1, self.config["retries_on_error"]
                     )
                 )
-                time.sleep(3)
 
         raise Exception(
             "Cannot connect to server. Try increasing 'timeout' or 'retries_on_error' at the carla configuration"

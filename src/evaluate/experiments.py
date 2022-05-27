@@ -1,6 +1,13 @@
 import math
-from re import S
+from collections import deque
 import pandas as pd
+import numpy as np
+
+from PIL import Image
+
+import matplotlib.pyplot as plt
+
+import torch
 
 from benchmark.basic_experiment import BasicExperiment
 from benchmark.navigation.path_planner import PathPlanner
@@ -25,6 +32,7 @@ class CORL2017(BasicExperiment):
         self.cfg = experiment_config
         self.max_time_idle = self.cfg["others"]["max_time_idle"]
         self.max_time_episode = self.cfg["others"]["max_time_episode"]
+        self.image_deque = deque(maxlen=self.cfg['obs_size'])
 
     def _construct_experiment_config(self, base_config, weather, town, navigation_type):
         # Update the spawn points
@@ -67,6 +75,7 @@ class CORL2017(BasicExperiment):
         self.n_collision = 0
         self.n_lane_invasion = 0
         self.distance = 2000
+        self.image_deque.clear()
 
         # Set the planner
         self.route_planner = PathPlanner(
@@ -121,7 +130,19 @@ class CORL2017(BasicExperiment):
         """
 
         observation = {}
-        observation['image'] = sensor_data['rgb']
+        image = np.swapaxes(sensor_data['rgb'], 0, 2)
+        crop_size = 256 - (2 * self.config['image_resize'][1])
+        image = image[:, crop_size:, :]
+
+        if not self.image_deque:
+            for i in range(self.cfg['obs_size']):
+                self.image_deque.append(image)
+        else:
+            self.image_deque.append(image)
+
+        observation['image'] = torch.as_tensor(
+            np.array(list(self.image_deque)), dtype=torch.float
+        )
         command = self.route_planner.get_next_command(debug=False)
         observation['command'] = command['direction'].value
 

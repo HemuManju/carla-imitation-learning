@@ -42,6 +42,7 @@ def get_image_json_files(read_path):
 def get_preprocessing_pipeline(config):
     preproc = transforms.Compose(
         [
+
             transforms.Grayscale(),
             transforms.Resize(
                 size=(config['image_resize'][1], config['image_resize'][2])

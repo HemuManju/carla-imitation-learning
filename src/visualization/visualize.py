@@ -7,14 +7,13 @@ import torchvision.transforms.functional as F
 
 
 def show_grid(imgs):
-
     # if not isinstance(imgs, list):
     #     imgs = [imgs]
     fig, axs = plt.subplots(ncols=len(imgs), squeeze=False)
     for i, img in enumerate(imgs):
-        img = img.detach()
-        img = F.to_pil_image(img)
-        axs[0, i].imshow(np.asarray(img), cmap='gray')
+        img = img.detach().cpu().numpy()
+        # img = F.to_pil_image(img)
+        axs[0, i].imshow(img, cmap='gray')
         axs[0, i].set(xticklabels=[], yticklabels=[], xticks=[], yticks=[])
     plt.show()
     return fig
@@ -44,7 +43,6 @@ def plot_trends(paths, legends, config, axs=None):
             axs.plot(df['Step'], df['Value'], dashes=config['dashes'])
         else:
             axs.plot(df['Step'], df['Value'])
-
 
     plt.xlim([-1, dfs[0]['Step'].values[-1]])
     plt.ylabel('Mean Squared Loss')

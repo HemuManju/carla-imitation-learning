@@ -1,31 +1,31 @@
 ##-----------------------------------------------------#
 # Training parameters
-NUM_EPOCHS: 200
+NUM_EPOCHS: 150
 BATCH_SIZE: 64
 LEARNING_RATE: 0.0001
-DROP_OUT: 0.20
+DROP_OUT: 0.10
 TEST_SIZE: 0.15
 VALID_SIZE: 0.15
 
 ##-----------------------------------------------------#
 # Data Parameters
-obs_size: 3
+obs_size: 1
 n_actions: 3
 frame_skip: 4
 branch_weight: 1
 speed_weight: 1
-number_workers: 8
+number_workers: 6
 
 ##-----------------------------------------------------#
 # Other parameters
-image_size: [1, 224, 224]
-image_resize: [1, 128, 128]
+image_size: [1, 256, 256]
+image_resize: [1, 78, 128]
 alpha: 0.75
 beta: 0.1
 
 ##-----------------------------------------------------#
 # Data splitting scheme
-navigation_types: ['straight', 'one_curve', 'navigation']
+navigation_types: ['navigation', 'one_curve', 'straight']
 data_split:
   training:
     town: ['Town01']
@@ -33,6 +33,7 @@ data_split:
         'ClearNoon',
         # 'SoftRainNoon',
         'HardRainNoon',
+        # 'ClearSunset',
         # 'SoftRainSunset',
         'HardRainSunset',
       ]
@@ -40,7 +41,7 @@ data_split:
   validation:
     town: ['Town01']
     season: ['ClearSunset']
-    behavior: ['normal']
+    behavior: ['normal', 'catious']
   testing:
     town: []
     season: []
@@ -49,7 +50,7 @@ data_split:
 ##-----------------------------------------------------#
 # Path(s)
 raw_data_path: '/home/hemanth/Desktop/carla_data/Town01_NAVIGATION/'
-# raw_data_path: '../carla_data/Town01/'
+# raw_data_path: '../carla_data/Town01_NAVIGATION/'
 logs_path: 'logs/'
 train_data_path: 'data/raw/train'
 val_data_path: 'data/raw/validation'
