@@ -1,6 +1,6 @@
 ##-----------------------------------------------------#
 # Training parameters
-NUM_EPOCHS: 150
+NUM_EPOCHS: 200
 BATCH_SIZE: 64
 LEARNING_RATE: 0.0001
 DROP_OUT: 0.10
@@ -14,18 +14,18 @@ n_actions: 3
 frame_skip: 4
 branch_weight: 1
 speed_weight: 1
-number_workers: 6
+number_workers: 8
 
 ##-----------------------------------------------------#
 # Other parameters
 image_size: [1, 256, 256]
-image_resize: [1, 78, 128]
+image_resize: [1, 128, 128]
 alpha: 0.75
 beta: 0.1
 
 ##-----------------------------------------------------#
 # Data splitting scheme
-navigation_types: ['navigation', 'one_curve', 'straight']
+navigation_types: ['straight', 'one_curve', 'navigation']
 data_split:
   training:
     town: ['Town01']
@@ -34,7 +34,7 @@ data_split:
         # 'SoftRainNoon',
         'HardRainNoon',
         # 'ClearSunset',
-        # 'SoftRainSunset',
+        'SoftRainSunset',
         'HardRainSunset',
       ]
     behavior: ['normal', 'catious']

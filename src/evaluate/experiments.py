@@ -8,6 +8,7 @@ from PIL import Image
 import matplotlib.pyplot as plt
 
 import torch
+from torchvision import transforms
 
 from benchmark.basic_experiment import BasicExperiment
 from benchmark.navigation.path_planner import PathPlanner
@@ -130,21 +131,21 @@ class CORL2017(BasicExperiment):
         """
 
         observation = {}
-        image = np.swapaxes(sensor_data['rgb'], 0, 2)
-        crop_size = 256 - (2 * self.config['image_resize'][1])
-        image = image[:, crop_size:, :]
+        image = sensor_data['rgb']
+        # Crop the image
+        # crop_size = 256 - (2 * self.config['image_resize'][1])
+        # image = image[crop_size:, :, :]
+        image_tensor = transforms.ToTensor()(image.copy())
 
         if not self.image_deque:
             for i in range(self.cfg['obs_size']):
-                self.image_deque.append(image)
+                self.image_deque.append(image_tensor)
         else:
-            self.image_deque.append(image)
+            self.image_deque.append(image_tensor)
 
-        observation['image'] = torch.as_tensor(
-            np.array(list(self.image_deque)), dtype=torch.float
-        )
+        observation['image'] = torch.stack(list(self.image_deque), dim=0)
         command = self.route_planner.get_next_command(debug=False)
-        observation['command'] = command['direction'].value
+        observation['command'] = command['modified_direction'].value
 
         return observation
 

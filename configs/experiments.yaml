@@ -1,17 +1,17 @@
 ##------------------Experiment config------------------##
 weathers: [
-    'ClearNoon',
-    # 'SoftRainNoon',
-    'HardRainNoon',
+    # 'ClearNoon',
+    'SoftRainNoon',
+    # 'HardRainNoon',
     'ClearSunset',
-    # 'SoftRainSunset',
-    'HardRainSunset',
   ]
+# 'SoftRainSunset',
+# 'HardRainSunset',
 towns: ['Town01']
-navigation_types: ['straight'] # 'navigation', , 'one_curve'
+navigation_types: ['navigation'] # 'one_curve', 'navigation'
 background_activity:
-  n_vehicles: 0
-  n_walkers: 0
+  n_vehicles: 20
+  n_walkers: 10
   tm_hybrid_mode: True
   seed: 1337
 repeat: 1
@@ -48,7 +48,7 @@ vehicle:
       type: 'sensor.camera.rgb'
       image_size_x: 256
       image_size_y: 256
-      transform: '1.25,0,1.85,90,0,0'
+      transform: '1.25,0,1.85,0,0,0'
   sensors_process:
     normalized: True
     gray_scale: True

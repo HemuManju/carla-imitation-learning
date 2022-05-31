@@ -121,5 +121,5 @@ class WarmStart(pl.LightningModule):
             # val_checkpoint_on is val_loss passed in as checkpoint_on
             'monitor': 'losses/val_loss',
         }
-        return [optimizer], [scheduler]
+        return [optimizer]
 

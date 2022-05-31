@@ -144,45 +144,37 @@ class BranchNet(pl.LightningModule):
         self.right_turn = nn.Sequential(
             nn.LazyLinear(self.layer_size),
             nn.ReLU(),
-            nn.Dropout(p=self.dropout),
             nn.Linear(self.layer_size, self.layer_size),
             nn.ReLU(),
-            nn.Dropout(p=self.dropout),
             nn.Linear(self.layer_size, output_size),
-            nn.Tanh(),
+            nn.ReLU(),
         )
 
         self.left_turn = nn.Sequential(
             nn.LazyLinear(self.layer_size),
             nn.ReLU(),
-            nn.Dropout(p=self.dropout),
             nn.Linear(self.layer_size, self.layer_size),
             nn.ReLU(),
-            nn.Dropout(p=self.dropout),
             nn.Linear(self.layer_size, output_size),
-            nn.Tanh(),
+            nn.ReLU(),
         )
 
         self.straight = nn.Sequential(
             nn.LazyLinear(self.layer_size),
             nn.ReLU(),
-            nn.Dropout(p=self.dropout),
             nn.Linear(self.layer_size, self.layer_size),
             nn.ReLU(),
-            nn.Dropout(p=self.dropout),
-            nn.Linear(256, output_size),
-            nn.Tanh(),
+            nn.Linear(self.layer_size, output_size),
+            nn.ReLU(),
         )
 
         self.lane_follow = nn.Sequential(
             nn.LazyLinear(self.layer_size),
             nn.ReLU(),
-            nn.Dropout(p=self.dropout),
             nn.Linear(self.layer_size, self.layer_size),
             nn.ReLU(),
-            nn.Dropout(p=self.dropout),
             nn.Linear(self.layer_size, output_size),
-            nn.Tanh(),
+            nn.ReLU(),
         )
 
         self.branch = nn.ModuleList(
@@ -205,36 +197,36 @@ class BaseConvNet(pl.LightningModule):
         self.cnn_base = nn.Sequential(  # input shape (4, 256, 256)
             nn.Conv2d(obs_size, 32, kernel_size=5, stride=2),
             nn.ReLU(),
-            nn.BatchNorm2d(32),
+            # nn.BatchNorm2d(32),
             nn.Conv2d(32, 32, kernel_size=3, stride=1),
             nn.ReLU(),
-            nn.BatchNorm2d(32),
+            # nn.BatchNorm2d(32),
             nn.Conv2d(32, 64, kernel_size=3, stride=2),
             nn.ReLU(),
-            nn.BatchNorm2d(64),
+            # nn.BatchNorm2d(64),
             nn.Conv2d(64, 64, kernel_size=3, stride=1),
             nn.ReLU(),
-            nn.BatchNorm2d(64),
+            # nn.BatchNorm2d(64),
             nn.Conv2d(64, 128, kernel_size=3, stride=2),
             nn.ReLU(),
-            nn.BatchNorm2d(128),
+            # nn.BatchNorm2d(128),
             nn.Conv2d(128, 128, kernel_size=3, stride=1),
             nn.ReLU(),
-            nn.BatchNorm2d(128),
+            # nn.BatchNorm2d(128),
             nn.Conv2d(128, 256, kernel_size=3, stride=1),
             nn.ReLU(),
-            nn.BatchNorm2d(256),
+            # nn.BatchNorm2d(256),
             nn.Conv2d(256, 256, kernel_size=3, stride=1),
             nn.ReLU(),
-            nn.BatchNorm2d(256),
+            # nn.BatchNorm2d(256),
         )
         self.fc = nn.Sequential(
             nn.LazyLinear(512),
             nn.ReLU(),
-            nn.Dropout(p=0.2),
+            # nn.Dropout(p=0.2),
             nn.Linear(512, 512),
             nn.ReLU(),
-            nn.Dropout(p=0.2),
+            # nn.Dropout(p=0.2),
         )
 
     def forward(self, x):
@@ -265,9 +257,8 @@ class CIRLBasePolicy(pl.LightningModule):
 
     def forward(self, x, command):
         # Testing
-        interactive_show_grid(x[0])
+        # interactive_show_grid(x[0])
         embedding = self.back_bone_net(x)
-        print(embedding.shape)
         actions = self.action_net(embedding, command)
         return actions
 

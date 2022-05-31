@@ -93,14 +93,18 @@ with skip_run('skip', 'warm_starting_navigation_type') as check, check():
         torch.manual_seed(cfg['pytorch_seed'])
 
         # Checkpoint
+        logger = pl.loggers.TensorBoardLogger(cfg['logs_path'], name='warm_start')
         checkpoint_callback = pl.callbacks.ModelCheckpoint(
-            monitor='losses/val_loss',
+            monitor='losses/train_loss',
             dirpath=cfg['logs_path'],
             save_top_k=1,
             mode='min',
+            filename='warmstart',
             save_last=True,
         )
-        logger = pl.loggers.TensorBoardLogger(cfg['logs_path'], name='warm_start')
+
+        # Checkpoint path
+        cfg['check_point_path'] = f'logs/2022-05-28/{navigation_type}/last.ckpt'
 
         # Setup
         net = CIRLBasePolicy(cfg)
@@ -125,7 +129,7 @@ with skip_run('skip', 'warm_starting_navigation_type') as check, check():
                 logger=logger,
                 callbacks=[checkpoint_callback],
                 resume_from_checkpoint=cfg['check_point_path'],
-                enable_progress_bar=False,
+                enable_progress_bar=True,
             )
         trainer.fit(model)
 
@@ -204,18 +208,15 @@ with skip_run('skip', 'figure_plotting') as check, check():
 with skip_run('skip', 'benchmark_trained_model') as check, check():
     # Load the configuration
     cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
-    cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
+    # cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
 
-    restore_config = {
-        'checkpoint_path': 'logs/2022-05-27/one_curve/epoch=0-step=1564.ckpt'
-    }
+    restore_config = {'checkpoint_path': 'logs/2022-05-28/navigation/last.ckpt'}
     model = WarmStart.load_from_checkpoint(
         restore_config['checkpoint_path'],
         hparams=cfg,
         net=CIRLBasePolicy(cfg),
         data_loader=None,
     )
-
     experiment_cfg = yaml.load(open('configs/experiments.yaml'), Loader=yaml.SafeLoader)
     experiment_suite = CORL2017(experiment_cfg)
     agent = CustomCILAgent(model, cfg)
@@ -229,3 +230,32 @@ with skip_run('skip', 'summarize_benchmark') as check, check():
 
     read_path = 'logs/benchmark_results/run/measurements.csv'
     summarize(read_path)
+
+with skip_run('skip', 'benchmark_trained_model') as check, check():
+    # Load the configuration
+    navigation_type = 'straight'
+
+    cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
+
+    raw_data_path = cfg['raw_data_path']
+    cfg['raw_data_path'] = raw_data_path + f'/{navigation_type}'
+
+    restore_config = {'checkpoint_path': 'logs/2022-05-28/one_curve/warmstart.ckpt'}
+    model = WarmStart.load_from_checkpoint(
+        restore_config['checkpoint_path'],
+        hparams=cfg,
+        net=CIRLBasePolicy(cfg),
+        data_loader=None,
+    )
+    model.freeze()
+    model.eval()
+    # Random seed
+    gpus = get_num_gpus()
+    torch.manual_seed(cfg['pytorch_seed'])
+
+    # Dataloader
+    data_loader = warmstart_dataset.webdataset_data_iterator(cfg)
+
+    for data in data_loader['training']:
+        output = model(data[0][0:1], data[1][0:1])
+        print(output)

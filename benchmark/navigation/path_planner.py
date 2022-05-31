@@ -13,7 +13,7 @@ try:
 except ModuleNotFoundError:
     pass
 
-from .local_planner import LocalPlanner
+from .local_planner import LocalPlanner, compute_modified_connection
 from .global_route_planner import GlobalRoutePlanner
 from .utils import get_speed, is_within_distance, get_trafficlight_trigger_location
 
@@ -88,7 +88,13 @@ class PathPlanner(object):
         waypoint, direction = self._local_planner.get_incoming_waypoint_and_direction(
             steps=0
         )
-        return {'waypoint': waypoint, 'direction': direction}
+        current = self._vehicle.get_transform()
+        modified_direction = compute_modified_connection(current, waypoint)
+        return {
+            'waypoint': waypoint,
+            'direction': direction,
+            'modified_direction': modified_direction,
+        }
 
     def set_target_speed(self, speed):
         """

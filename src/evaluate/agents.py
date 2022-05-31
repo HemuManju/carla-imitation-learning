@@ -48,11 +48,11 @@ class CustomCILAgent(Agent):
             command = 4
         else:
             command = observation['command']
-
-        command = 3
-
         # Get the control
         acc, steer, brake = self._control_function(image_input, command)
+
+        if command == 3:
+            steer = 1
 
         # This a bit biased, but is to avoid fake breaking
         if brake < 0.1:
@@ -67,7 +67,7 @@ class CustomCILAgent(Agent):
 
         # Carla vehicle control
         control = carla.VehicleControl()
-        control.steer = steer
+        control.steer = steer - 1
         control.throttle = acc * 0.75
         control.brake = brake
         control.hand_brake = 0
