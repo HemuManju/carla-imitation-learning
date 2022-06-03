@@ -31,26 +31,19 @@ class CustomCILAgent(Agent):
 
         # Preprocessing
         self._avoid_stopping = avoid_stopping
+        self.time_since_brake = 0
         self.preprocess = get_preprocessing_pipeline(config)
 
     def compute_control(self, observation):
         image_input = torch.swapaxes(self.preprocess(observation['image']), 1, 0)
 
-        # image_input = transforms.functional.rotate(image_input, angle=90)
-        # print(image_input.shape)
-        # test = image_input[0, :, :, :].permute(1, 2, 0)
-        # plt.imshow(test[:, :, 0], cmap='gray')
-        # plt.show()
-        # afaf
-        # print(image_input.shape)
-        # afaf
         if observation['command'] in [-1, 5, 6]:
             command = 4
         else:
             command = observation['command']
+
         # Get the control
         acc, steer, brake = self._control_function(image_input, command)
-
         if command == 3:
             steer = 1
 
@@ -61,15 +54,31 @@ class CustomCILAgent(Agent):
         if acc > brake:
             brake = 0.0
 
-        # We limit speed to 35 km/h to avoid
-        # if speed > 10.0 and brake == 0.0:
-        #     acc = 0.0
+        # Speed limit to 35 km/h
+        if observation['speed'] > 35.0 and brake == 0.0:
+            acc = 0.0
+
+        if np.abs(steer - 1) > 0.15:
+            acc_scaling_factor = 0.50
+        else:
+            acc_scaling_factor = 0.75
+
+        if self._avoid_stopping:
+            # If time since bake is less than 50
+            if brake > 0.45 and self.time_since_brake < 50:
+                brake_scaling_factor = 1
+            else:
+                brake_scaling_factor = 0.0
+
+            self.time_since_brake += 1
+            if self.time_since_brake > 100:
+                self.time_since_brake = 0
 
         # Carla vehicle control
         control = carla.VehicleControl()
         control.steer = steer - 1
-        control.throttle = acc * 0.75
-        control.brake = brake
+        control.throttle = acc * acc_scaling_factor
+        control.brake = brake * brake_scaling_factor
         control.hand_brake = 0
         control.reverse = 0
         return control

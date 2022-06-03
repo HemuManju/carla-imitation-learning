@@ -210,7 +210,7 @@ with skip_run('skip', 'benchmark_trained_model') as check, check():
     cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
     # cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
 
-    restore_config = {'checkpoint_path': 'logs/2022-05-28/navigation/last.ckpt'}
+    restore_config = {'checkpoint_path': 'logs/2022-05-29/straight/last.ckpt'}
     model = WarmStart.load_from_checkpoint(
         restore_config['checkpoint_path'],
         hparams=cfg,
@@ -228,7 +228,7 @@ with skip_run('skip', 'summarize_benchmark') as check, check():
     cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
     cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
 
-    read_path = 'logs/benchmark_results/run/measurements.csv'
+    read_path = 'logs/benchmark_results/Town01/measurements.csv'
     summarize(read_path)
 
 with skip_run('skip', 'benchmark_trained_model') as check, check():

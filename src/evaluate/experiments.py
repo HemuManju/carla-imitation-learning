@@ -75,7 +75,7 @@ class CORL2017(BasicExperiment):
         self.done_time_episode = False
         self.n_collision = 0
         self.n_lane_invasion = 0
-        self.distance = 2000
+        self.distance_to_destination = 2000
         self.image_deque.clear()
 
         # Set the planner
@@ -113,11 +113,9 @@ class CORL2017(BasicExperiment):
 
         # Get lane invasion information
         if 'lane_invasion' in sensor_data.keys():
-
-            self.n_lane_invasion += 1
-            data['n_lane_invasion'] = self.n_lane_invasion
+            data['lane_invasion'] = 1
         else:
-            data['n_lane_invasion'] = 0
+            data['lane_invasion'] = 0
         return data
 
     def get_observation(self, sensor_data):
@@ -147,21 +145,22 @@ class CORL2017(BasicExperiment):
         command = self.route_planner.get_next_command(debug=False)
         observation['command'] = command['modified_direction'].value
 
+        # Add speed to observation
+        observation['speed'] = get_speed(self.hero)
+
         return observation
 
     def get_data_to_log(self, sensor_data, observation, control):
         data = {}
-
-        # Simulation parameters
-        data['weather'] = self.config['weather']
-        data['town'] = self.config['town']
         data['command'] = observation['command']
         data['start_points'] = [
             self.start_point.location.x,
             self.start_point.location.y,
         ]
         data['end_points'] = [self.end_point.location.x, self.end_point.location.y]
-        data['reached_destination'] = (self.distance < 2.5) or self.route_planner.done()
+        data['reached_destination'] = (
+            self.distance_to_destination < 2.5
+        ) or self.route_planner.done()
         data['done_time_episode'] = self.done_time_episode
         data['n_collisions'] = self.n_collision
         data['idle_time'] = self.time_idle
@@ -204,12 +203,13 @@ class CORL2017(BasicExperiment):
         self.done_falling = self.hero.get_location().z < -0.5
 
         # Distance to final waypoint
-        self.distance = self.get_distance_to_destination()
+        self.distance_to_destination = self.get_distance_to_destination()
+
         return (
             self.done_time_idle
             or self.done_falling
             or self.done_time_episode
             or self.route_planner.done()
-            or (self.distance < 2.5)
+            or (self.distance_to_destination < 2.5)
             or (self.n_collision > 200)
         )

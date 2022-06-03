@@ -36,19 +36,27 @@ def create_directory(write_path):
 
 
 class DataRecorder:
-    def __init__(self, config, directory='run', write_path=None) -> None:
-        self.cfg = config
-        self.write_path = write_path
+    def __init__(self, summary_config) -> None:
+        self.cfg = summary_config
+        self.write_path = self.cfg['write_path']
+
+        if self.cfg['directory'] is None:
+            directory = 'run'
+        else:
+            directory = self.cfg['directory']
 
         if self.write_path is None:
             self.write_path = get_nonexistant_path(
                 f'logs/benchmark_results/{directory}'
             )
-
         # Create a directory
         create_directory(self.write_path)
 
-    def create_csv_file(self, init_data, file_name='measurements'):
+    def create_csv_file(self, init_data):
+
+        if self.cfg['file_name'] is None:
+            file_name = 'measurements'
+
         # Create a folder
         self.path_to_file = self.write_path + f'/{file_name}.csv'
         if not os.path.isfile(self.path_to_file):
@@ -69,11 +77,9 @@ class Benchmarking:
         self.config = cfg
         self.agent = agent
 
-        # Setup the data_writer
-        self.data_recorder = DataRecorder(self.config)
-
         # Setup carla core and experiment
         os.environ["CARLA_ROOT"] = self.config['carla_server']['carla_path']
+
         # Kill all servers just in case
         kill_all_servers()
         self.core = CarlaCore(self.config['carla_server'])
@@ -110,6 +116,8 @@ class Benchmarking:
                     'exp_id': exp_id,
                     'iteration': iteration,
                     'navigation_type': config['navigation_type'],
+                    'weather': config['weather'],
+                    'town': config['town'],
                 }
             )
 
@@ -136,6 +144,8 @@ class Benchmarking:
                         'exp_id': exp_id,
                         'iteration': iteration,
                         'navigation_type': config['navigation_type'],
+                        'weather': config['weather'],
+                        'town': config['town'],
                     }
                 )
                 self.data_recorder.write(data_to_log)
@@ -150,16 +160,26 @@ class Benchmarking:
             # Get all the experiment configs
             experiment_configs = self.experiment.get_experiment_configs()
             for exp_id, config in enumerate(experiment_configs):
-                # for iteration in range(config['repeat']):
 
-                self.run_single_episode(exp_id, iteration=0, config=config)
+                # Update the summary writer info
+                config['summary_writer']['directory'] = config['town']
 
-                # Destroy actors and sensors
-                client = self.core.get_client()
-                self.experiment.destroy_actors_sensors(client)
+                # Setup the data_writer
+                self.data_recorder = DataRecorder(config['summary_writer'])
+
+                # Run the simulations
+                for i in range(len(config['vehicle']['path_points'])):
+                    self.run_single_episode(exp_id, iteration=i, config=config)
+
+                    # Destroy actors and sensors
+                    client = self.core.get_client()
+                    self.experiment.destroy_actors_sensors(client)
+
+
 
             # Post processing and summarizing
         finally:
+            # Close the recorder
             self.data_recorder.close()
             kill_all_servers()
 

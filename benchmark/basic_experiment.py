@@ -33,32 +33,6 @@ BASE_EXPERIMENT_CONFIG = {
     "enable_map_assets": False,  # enable / disable all town assets except for the road
     "enable_rendering": True,  # enable / disable camera images
     "show_display": False,  # Whether or not the server will be displayed
-    "hero": {
-        "blueprint": "vehicle.lincoln.mkz_2017",
-        "sensors": {  # Go to sensors/factory.py to check all the available sensors
-            # "sensor_name1": {
-            #     "type": blueprint,
-            #     "attribute1": attribute_value1,
-            #     "attribute2": attribute_value2
-            # }
-            # "sensor_name2": {
-            #     "type": blueprint,
-            #     "attribute_name1": attribute_value1,
-            #     "attribute_name2": attribute_value2
-            # }
-        },
-        "spawn_points": [
-            # "0,0,0,0,0,0",  # x,y,z,roll,pitch,yaw
-        ],
-    },
-    "background_activity": {
-        "n_vehicles": 0,
-        "n_walkers": 0,
-        "tm_hybrid_mode": True,
-        "seed": None,
-    },
-    "town": "Town05_Opt",
-    "weather": 'ClearNoon',
 }
 
 

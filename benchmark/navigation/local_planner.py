@@ -301,7 +301,7 @@ class LocalPlanner(object):
 
         :return: boolean
         """
-        return len(self._waypoints_queue) == 0
+        return len(self._waypoints_queue) == 1
 
 
 def _retrieve_options(list_waypoints, current_waypoint):

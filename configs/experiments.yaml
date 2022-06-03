@@ -8,7 +8,7 @@ weathers: [
 # 'SoftRainSunset',
 # 'HardRainSunset',
 towns: ['Town01']
-navigation_types: ['navigation'] # 'one_curve', 'navigation'
+navigation_types: ['straight'] # 'one_curve', 'navigation'
 background_activity:
   n_vehicles: 20
   n_walkers: 10
@@ -56,7 +56,9 @@ vehicle:
 
 ##------------------Summary writer config------------------##
 summary_writer:
-  data_write_path: '../../../Desktop/carla_data/Town01/'
+  write_path: null
+  directory: null
+  file_name: null
 
 ##------------------Simulation config------------------##
 simulation:
