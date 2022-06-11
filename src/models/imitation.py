@@ -1,8 +1,26 @@
+import torch
 import torch.nn as nn
 import pytorch_lightning as pl
 
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
+
+
+class WeightedMSE(torch.nn.MSELoss):
+    def __init__(self, weights=None):
+        super().__init__(reduction='none')
+        self.weights = weights
+
+    def forward(self, input, target):
+        if self.weights is not None:
+            return torch.mean(
+                torch.sum(
+                    self.weights * super().forward(input, target) / self.weights.sum(),
+                    dim=1,
+                )
+            )
+        else:
+            return torch.mean(super().forward(input, target))
 
 
 class Imitation(pl.LightningModule):
@@ -85,8 +103,8 @@ class WarmStart(pl.LightningModule):
 
         # Predict and calculate loss
         output = self.forward(images, command)
-        criterion = nn.MSELoss()
-
+        # criterion = nn.MSELoss()
+        criterion = WeightedMSE(weights=torch.tensor([2, 2, 10, 1]).to(self.device))
         loss = criterion(output, action)
 
         self.log('losses/train_loss', loss, on_step=False, on_epoch=True)
@@ -97,7 +115,8 @@ class WarmStart(pl.LightningModule):
 
         # Predict and calculate loss
         output = self.forward(images, command)
-        criterion = nn.MSELoss()
+        # criterion = nn.MSELoss()
+        criterion = WeightedMSE(weights=torch.tensor([2, 2, 10, 1]).to(self.device))
         loss = criterion(output, action)
 
         self.log('losses/val_loss', loss, on_step=False, on_epoch=True)
@@ -121,5 +140,9 @@ class WarmStart(pl.LightningModule):
             # val_checkpoint_on is val_loss passed in as checkpoint_on
             'monitor': 'losses/val_loss',
         }
-        return [optimizer]
+
+        if self.h_params['check_point_path'] is None:
+            return [optimizer], [scheduler]
+        else:
+            return [optimizer]
 

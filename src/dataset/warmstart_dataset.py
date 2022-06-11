@@ -20,9 +20,9 @@ def concatenate_samples(samples, config):
     }
 
     # Crop the image
-    # crop_size = 256 - (2 * config['image_resize'][1])
-    # images = torch.stack(combined_data['jpeg'], dim=0)[:, :, crop_size:, :]
-    images = torch.stack(combined_data['jpeg'], dim=0)
+    crop_size = 256 - (2 * config['image_resize'][1])
+    images = torch.stack(combined_data['jpeg'], dim=0)[:, :, crop_size:, :]
+    # images = torch.stack(combined_data['jpeg'], dim=0)
 
     preproc = get_preprocessing_pipeline(config)
     images = preproc(images).squeeze(1)
@@ -33,9 +33,23 @@ def concatenate_samples(samples, config):
     else:
         command = last_data['modified_direction']
 
+    # Throttle, steer, and brake action
+    # action = torch.tensor(
+    #     [last_data['throttle'], (last_data['steer'] + 1) * 2, last_data['brake'],]
+    # )
+
     action = torch.tensor(
-        [last_data['throttle'], last_data['steer'] + 1, last_data['brake']]
+        [
+            last_data['speed'] / 20,
+            last_data['throttle'],
+            (last_data['steer'] + 1) * 2,
+            last_data['brake'],
+        ]
     )
+
+    # Speed and steer action
+    # Normalize by maximum speed allowed
+    # action = torch.tensor([last_data['throttle'], (last_data['steer'] + 1) * 2])
     return images, command, action
 
 

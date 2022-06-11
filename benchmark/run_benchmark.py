@@ -1,7 +1,7 @@
 import os
 import csv
 
-from benchmark.core.carla_core import CarlaCore
+
 from benchmark.core.carla_core import kill_all_servers
 
 
@@ -53,7 +53,6 @@ class DataRecorder:
         create_directory(self.write_path)
 
     def create_csv_file(self, init_data):
-
         if self.cfg['file_name'] is None:
             file_name = 'measurements'
 
@@ -72,17 +71,13 @@ class DataRecorder:
 
 
 class Benchmarking:
-    def __init__(self, cfg, agent, experiment_suite):
+    def __init__(self, core, cfg, agent, experiment_suite):
         # Setup the env and model
         self.config = cfg
         self.agent = agent
 
-        # Setup carla core and experiment
-        os.environ["CARLA_ROOT"] = self.config['carla_server']['carla_path']
-
         # Kill all servers just in case
-        kill_all_servers()
-        self.core = CarlaCore(self.config['carla_server'])
+        self.core = core
         self.experiment = experiment_suite
 
     def setup_experiment(self, experiment_config):
@@ -121,8 +116,8 @@ class Benchmarking:
                 }
             )
 
-            if exp_id == 0:
-                self.data_recorder.create_csv_file(data_to_log)
+            # Create csv file
+            self.data_recorder.create_csv_file(data_to_log)
 
             while not done:
                 control = self.agent.compute_control(observation)
@@ -155,31 +150,19 @@ class Benchmarking:
 
         return done
 
-    def run(self):
+    def run(self, experiment_config, exp_id=0):
         try:
-            # Get all the experiment configs
-            experiment_configs = self.experiment.get_experiment_configs()
-            for exp_id, config in enumerate(experiment_configs):
+            # Setup the data_writer
+            self.data_recorder = DataRecorder(experiment_config['summary_writer'])
 
-                # Update the summary writer info
-                config['summary_writer']['directory'] = config['town']
+            # Run the simulations
+            for i in range(len(experiment_config['vehicle']['path_points'])):
+                self.run_single_episode(exp_id, iteration=i, config=experiment_config)
 
-                # Setup the data_writer
-                self.data_recorder = DataRecorder(config['summary_writer'])
+                # Destroy actors and sensors
+                client = self.core.get_client()
+                self.experiment.destroy_actors_sensors(client)
 
-                # Run the simulations
-                for i in range(len(config['vehicle']['path_points'])):
-                    self.run_single_episode(exp_id, iteration=i, config=config)
-
-                    # Destroy actors and sensors
-                    client = self.core.get_client()
-                    self.experiment.destroy_actors_sensors(client)
-
-
-
-            # Post processing and summarizing
         finally:
             # Close the recorder
             self.data_recorder.close()
-            kill_all_servers()
-

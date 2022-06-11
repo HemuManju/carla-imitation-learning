@@ -1,5 +1,6 @@
+import os
 from datetime import date
-from tkinter import E
+import itertools
 
 import pandas as pd
 import matplotlib.pyplot as plt
@@ -7,6 +8,8 @@ import matplotlib.pyplot as plt
 import torch
 import pytorch_lightning as pl
 
+from benchmark.core.carla_core import CarlaCore
+from benchmark.core.carla_core import kill_all_servers
 
 from src.data.stats import classification_accuracy
 
@@ -18,7 +21,7 @@ from src.architectures.nets import (
 )
 
 from src.models.imitation import WarmStart
-from src.evaluate.agents import CustomCILAgent
+from src.evaluate.agents import CustomCILAgent, PIDCILAgent
 from src.evaluate.experiments import CORL2017
 
 from benchmark.run_benchmark import Benchmarking
@@ -104,7 +107,7 @@ with skip_run('skip', 'warm_starting_navigation_type') as check, check():
         )
 
         # Checkpoint path
-        cfg['check_point_path'] = f'logs/2022-05-28/{navigation_type}/last.ckpt'
+        # cfg['check_point_path'] = f'logs/2022-05-28/{navigation_type}/last.ckpt'
 
         # Setup
         net = CIRLBasePolicy(cfg)
@@ -208,39 +211,76 @@ with skip_run('skip', 'figure_plotting') as check, check():
 with skip_run('skip', 'benchmark_trained_model') as check, check():
     # Load the configuration
     cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
-    # cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
 
-    restore_config = {'checkpoint_path': 'logs/2022-05-29/straight/last.ckpt'}
-    model = WarmStart.load_from_checkpoint(
-        restore_config['checkpoint_path'],
-        hparams=cfg,
-        net=CIRLBasePolicy(cfg),
-        data_loader=None,
-    )
+    # Experiment_config and experiment suite
     experiment_cfg = yaml.load(open('configs/experiments.yaml'), Loader=yaml.SafeLoader)
     experiment_suite = CORL2017(experiment_cfg)
-    agent = CustomCILAgent(model, cfg)
-    benchmark = Benchmarking(cfg, agent, experiment_suite)
-    benchmark.run()
+
+    # Carla server
+    # Setup carla core and experiment
+    kill_all_servers()
+    os.environ["CARLA_ROOT"] = cfg['carla_server']['carla_path']
+    core = CarlaCore(cfg['carla_server'])
+
+    # Get all the experiment configs
+    all_experiment_configs = experiment_suite.get_experiment_configs()
+    for exp_id, config in enumerate(all_experiment_configs):
+
+        # Update the summary writer info
+        town = config['town']
+        navigation_type = config['navigation_type']
+        weather = config['weather']
+        config['summary_writer']['directory'] = f'{town}_{navigation_type}_{weather}'
+
+        # Update the model
+        restore_config = {
+            'checkpoint_path': f'logs/2022-06-04/{navigation_type}/last.ckpt'
+        }
+        model = WarmStart.load_from_checkpoint(
+            restore_config['checkpoint_path'],
+            hparams=cfg,
+            net=CIRLBasePolicy(cfg),
+            data_loader=None,
+        )
+
+        # Change agent
+        agent = CustomCILAgent(model, cfg)
+        # agent = PIDCILAgent(model, cfg)
+
+        # Run the benchmark
+        benchmark = Benchmarking(core, cfg, agent, experiment_suite)
+        benchmark.run(config, exp_id)
+
+    # Kill all servers
+    kill_all_servers()
 
 with skip_run('skip', 'summarize_benchmark') as check, check():
     # Load the configuration
     cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
     cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
 
-    read_path = 'logs/benchmark_results/Town01/measurements.csv'
-    summarize(read_path)
+    towns = ['Town02', 'Town01']
+    weathers = ['ClearSunset', 'SoftRainNoon']
+    navigation_types = ['straight', 'one_curve', 'navigation']
+
+    for town, weather, navigation_type in itertools.product(
+        towns, weathers, navigation_types
+    ):
+        path = f'logs/benchmark_results/{town}_{navigation_type}_{weather}/measurements.csv'
+        print('-' * 32)
+        print(town, weather, navigation_type)
+        summarize(path)
 
 with skip_run('skip', 'benchmark_trained_model') as check, check():
     # Load the configuration
-    navigation_type = 'straight'
+    navigation_type = 'one_curve'
 
     cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
 
     raw_data_path = cfg['raw_data_path']
     cfg['raw_data_path'] = raw_data_path + f'/{navigation_type}'
 
-    restore_config = {'checkpoint_path': 'logs/2022-05-28/one_curve/warmstart.ckpt'}
+    restore_config = {'checkpoint_path': 'logs/2022-06-06/one_curve/warmstart.ckpt'}
     model = WarmStart.load_from_checkpoint(
         restore_config['checkpoint_path'],
         hparams=cfg,
@@ -258,4 +298,7 @@ with skip_run('skip', 'benchmark_trained_model') as check, check():
 
     for data in data_loader['training']:
         output = model(data[0][0:1], data[1][0:1])
+        print(data[2][0:1])
+        # print(torch.max(data[2][:, 0] / 20))
         print(output)
+        print('-------------------')

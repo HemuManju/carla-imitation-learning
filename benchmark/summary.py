@@ -26,7 +26,14 @@ def consolidate_results(df):
         results['not_stalled'] = True
 
     # Lane invasions
-    results['n_lane_invasion'] = sum(df['n_lane_invasion'].diff().dropna() > 0)
+    results['n_lane_invasion'] = sum(df['lane_invasion'].diff().dropna() > 0)
+
+    # Percentage completed
+    results['route_completed'] = (
+        (df['len_path_points'].values[0] - df['len_path_points'].values[-1] + 1)
+        / df['len_path_points'].values[0]
+        * 100
+    )
 
     # Distance travelled
 

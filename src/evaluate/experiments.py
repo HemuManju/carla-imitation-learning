@@ -1,7 +1,10 @@
+import copy
+
 import math
 from collections import deque
 import pandas as pd
 import numpy as np
+
 
 from PIL import Image
 
@@ -58,7 +61,7 @@ class CORL2017(BasicExperiment):
             for weather in self.cfg['weathers']:
                 for town in self.cfg['towns']:
                     config = self._construct_experiment_config(
-                        self.cfg.copy(), weather, town, navigation_type
+                        copy.deepcopy(self.cfg), weather, town, navigation_type
                     )
                     all_configs.append(config)
 
@@ -147,6 +150,7 @@ class CORL2017(BasicExperiment):
 
         # Add speed to observation
         observation['speed'] = get_speed(self.hero)
+        observation['steer'] = self.hero.get_control().steer
 
         return observation
 
@@ -164,6 +168,9 @@ class CORL2017(BasicExperiment):
         data['done_time_episode'] = self.done_time_episode
         data['n_collisions'] = self.n_collision
         data['idle_time'] = self.time_idle
+
+        # Add planner number of points
+        data['len_path_points'] = self.route_planner.get_n_remaining_path_points()
 
         # Vehicle parameters
         location = self.hero.get_location()

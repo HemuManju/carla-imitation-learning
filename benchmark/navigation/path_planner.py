@@ -86,7 +86,7 @@ class PathPlanner(object):
     def get_next_command(self, debug=False):
         self.run_step(debug)
         waypoint, direction = self._local_planner.get_incoming_waypoint_and_direction(
-            steps=0
+            steps=1
         )
         current = self._vehicle.get_transform()
         modified_direction = compute_modified_connection(current, waypoint)
@@ -196,6 +196,9 @@ class PathPlanner(object):
             control = self.add_emergency_stop(control)
 
         return control
+
+    def get_n_remaining_path_points(self):
+        return len(self._local_planner._waypoints_queue)
 
     def done(self):
         """Check whether the agent has reached its destination."""

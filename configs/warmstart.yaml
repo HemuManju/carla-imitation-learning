@@ -2,7 +2,7 @@
 # Training parameters
 NUM_EPOCHS: 200
 BATCH_SIZE: 64
-LEARNING_RATE: 0.0001
+LEARNING_RATE: 0.0005
 DROP_OUT: 0.10
 TEST_SIZE: 0.15
 VALID_SIZE: 0.15
@@ -10,7 +10,7 @@ VALID_SIZE: 0.15
 ##-----------------------------------------------------#
 # Data Parameters
 obs_size: 1
-n_actions: 3
+n_actions: 4
 frame_skip: 4
 branch_weight: 1
 speed_weight: 1
@@ -19,7 +19,7 @@ number_workers: 8
 ##-----------------------------------------------------#
 # Other parameters
 image_size: [1, 256, 256]
-image_resize: [1, 128, 128]
+image_resize: [1, 78, 128]
 alpha: 0.75
 beta: 0.1
 

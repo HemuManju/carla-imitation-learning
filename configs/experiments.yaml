@@ -8,7 +8,7 @@ weathers: [
 # 'SoftRainSunset',
 # 'HardRainSunset',
 towns: ['Town01']
-navigation_types: ['straight'] # 'one_curve', 'navigation'
+navigation_types: ['navigation'] # 'straight',, 'navigation', 'one_curve'
 background_activity:
   n_vehicles: 20
   n_walkers: 10
