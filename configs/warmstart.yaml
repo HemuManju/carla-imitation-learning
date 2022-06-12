@@ -2,7 +2,7 @@
 # Training parameters
 NUM_EPOCHS: 200
 BATCH_SIZE: 64
-LEARNING_RATE: 0.0005
+LEARNING_RATE: 0.0001
 DROP_OUT: 0.10
 TEST_SIZE: 0.15
 VALID_SIZE: 0.15
@@ -10,7 +10,7 @@ VALID_SIZE: 0.15
 ##-----------------------------------------------------#
 # Data Parameters
 obs_size: 1
-n_actions: 4
+n_actions: 3
 frame_skip: 4
 branch_weight: 1
 speed_weight: 1
@@ -25,23 +25,22 @@ beta: 0.1
 
 ##-----------------------------------------------------#
 # Data splitting scheme
-navigation_types: ['straight', 'one_curve', 'navigation']
+navigation_types: ['one_curve'] # 'straight', , 'navigation'
 data_split:
   training:
     town: ['Town01']
     season: [
         'ClearNoon',
-        # 'SoftRainNoon',
         'HardRainNoon',
         # 'ClearSunset',
-        'SoftRainSunset',
+        'HardRainNoon',
         'HardRainSunset',
       ]
-    behavior: ['normal', 'catious']
+    behavior: ['normal', 'cautious'] #'normal',
   validation:
     town: ['Town01']
     season: ['ClearSunset']
-    behavior: ['normal', 'catious']
+    behavior: ['normal', 'cautious'] #'normal',
   testing:
     town: []
     season: []

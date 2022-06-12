@@ -234,7 +234,7 @@ with skip_run('skip', 'benchmark_trained_model') as check, check():
 
         # Update the model
         restore_config = {
-            'checkpoint_path': f'logs/2022-06-04/{navigation_type}/last.ckpt'
+            'checkpoint_path': f'logs/2022-06-11/{navigation_type}/last.ckpt'
         }
         model = WarmStart.load_from_checkpoint(
             restore_config['checkpoint_path'],
@@ -259,14 +259,18 @@ with skip_run('skip', 'summarize_benchmark') as check, check():
     cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
     cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
 
-    towns = ['Town02', 'Town01']
+    # towns = ['Town02', 'Town01']
+    # weathers = ['ClearSunset', 'SoftRainNoon']
+    # navigation_types = ['straight', 'one_curve', 'navigation']
+
+    towns = ['Town01']
     weathers = ['ClearSunset', 'SoftRainNoon']
-    navigation_types = ['straight', 'one_curve', 'navigation']
+    navigation_types = ['one_curve']
 
     for town, weather, navigation_type in itertools.product(
         towns, weathers, navigation_types
     ):
-        path = f'logs/benchmark_results/{town}_{navigation_type}_{weather}/measurements.csv'
+        path = f'logs/benchmark_results/{town}_{navigation_type}_{weather}_1/measurements.csv'
         print('-' * 32)
         print(town, weather, navigation_type)
         summarize(path)

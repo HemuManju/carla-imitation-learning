@@ -18,7 +18,7 @@ def consolidate_results(df):
     )
     results['n_vehicle_collisions'] = sum(df['collision_vehicle'].diff().dropna() > 0)
     results['n_other_collisions'] = sum(df['collision_other'].diff().dropna() > 0)
-    results['n_collisions'] = df['n_collisions'].values[-1]
+    results['n_collisions'] = sum(((df['n_collisions'] > 0) * 1).diff().dropna() > 0)
 
     if (results['n_collisions'] == 0) and not results['successfull']:
         results['not_stalled'] = False

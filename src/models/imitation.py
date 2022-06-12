@@ -14,10 +14,7 @@ class WeightedMSE(torch.nn.MSELoss):
     def forward(self, input, target):
         if self.weights is not None:
             return torch.mean(
-                torch.sum(
-                    self.weights * super().forward(input, target) / self.weights.sum(),
-                    dim=1,
-                )
+                torch.sum(self.weights * super().forward(input, target), dim=1)
             )
         else:
             return torch.mean(super().forward(input, target))
@@ -103,8 +100,8 @@ class WarmStart(pl.LightningModule):
 
         # Predict and calculate loss
         output = self.forward(images, command)
-        # criterion = nn.MSELoss()
-        criterion = WeightedMSE(weights=torch.tensor([2, 2, 10, 1]).to(self.device))
+        criterion = nn.MSELoss()
+        # criterion = WeightedMSE(weights=torch.tensor([1, 1, 1]).to(self.device))
         loss = criterion(output, action)
 
         self.log('losses/train_loss', loss, on_step=False, on_epoch=True)
@@ -115,8 +112,8 @@ class WarmStart(pl.LightningModule):
 
         # Predict and calculate loss
         output = self.forward(images, command)
-        # criterion = nn.MSELoss()
-        criterion = WeightedMSE(weights=torch.tensor([2, 2, 10, 1]).to(self.device))
+        criterion = nn.MSELoss()
+        # criterion = WeightedMSE(weights=torch.tensor([1, 1, 1]).to(self.device))
         loss = criterion(output, action)
 
         self.log('losses/val_loss', loss, on_step=False, on_epoch=True)
@@ -131,7 +128,7 @@ class WarmStart(pl.LightningModule):
     def configure_optimizers(self):
         optimizer = Adam(self.parameters(), lr=self.h_params['LEARNING_RATE'])
         lr_scheduler = ReduceLROnPlateau(
-            optimizer, patience=5, factor=0.9, verbose=True
+            optimizer, patience=5, factor=0.95, verbose=True
         )
 
         scheduler = {

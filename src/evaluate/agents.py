@@ -104,6 +104,7 @@ class CustomCILAgent(BaseAgent):
         # Get the control
         actions = self._control_function(image_input, command)
         acc, steer, brake = actions[0], actions[1], actions[2]
+
         if command == 3:
             steer = 2
 
