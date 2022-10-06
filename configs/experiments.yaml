@@ -8,7 +8,7 @@ weathers: [
 # 'SoftRainSunset',
 # 'HardRainSunset',
 towns: ['Town01']
-navigation_types: ['one_curve'] # 'straight',, 'navigation', 'one_curve'
+navigation_types: ['navigation'] # 'straight',, 'navigation', 'one_curve'
 background_activity:
   n_vehicles: 20
   n_walkers: 10
@@ -23,10 +23,10 @@ others:
 ##-----------------------------------------------------#
 # Other parameters
 image_size: [1, 256, 256]
-image_resize: [1, 78, 128]
+image_resize: [1, 128, 128]
 alpha: 0.75
 beta: 0.1
-obs_size: 1
+seq_length: 2
 
 ##------------------Vehicle config------------------##
 vehicle:

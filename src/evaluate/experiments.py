@@ -36,14 +36,13 @@ class CORL2017(BasicExperiment):
         self.cfg = experiment_config
         self.max_time_idle = self.cfg["others"]["max_time_idle"]
         self.max_time_episode = self.cfg["others"]["max_time_episode"]
-        self.image_deque = deque(maxlen=self.cfg['obs_size'])
+        self.image_deque = deque(maxlen=self.cfg['seq_length'])
 
     def _construct_experiment_config(self, base_config, weather, town, navigation_type):
         # Update the spawn points
         data = pd.read_xml(
             f'benchmark/corl2017/{town}_{navigation_type}.xml', xpath=".//waypoint"
         ).values.tolist()
-
         path_points = []
         for i in range(0, len(data), 2):
             path_points.append([data[i], data[i + 1]])
@@ -139,7 +138,7 @@ class CORL2017(BasicExperiment):
         image_tensor = transforms.ToTensor()(image.copy())
 
         if not self.image_deque:
-            for i in range(self.cfg['obs_size']):
+            for i in range(self.cfg['seq_length']):
                 self.image_deque.append(image_tensor)
         else:
             self.image_deque.append(image_tensor)

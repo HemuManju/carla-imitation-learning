@@ -1,11 +1,15 @@
 import os
 
+from collections import deque
+
 from subprocess import Popen
 import atexit
 
 import numpy as np
 import deepdish as dd
 from skimage.io import imread_collection
+
+import webdataset as wds
 
 
 def start_shell_command_and_wait(command):
@@ -58,3 +62,43 @@ def download_CORL2017_dataset():
 
     # start downloading and wait for it to finish
     start_shell_command_and_wait(download_command)
+
+
+def create_regression_data(dataset):
+    dt = 1.0 / 20.0
+
+    dataset = dataset.unbatched()
+    theta_near = []
+    theta_far = []
+    theta_middle = []
+    theta_history = deque([0, 0, 0, 0], maxlen=4)
+    steering = []
+    integrate_theta = []
+
+    for i, data in enumerate(dataset):
+        d = data[2]
+
+        theta_history.append(d[0].numpy())
+        theta_near.append(d[0].numpy())
+        theta_middle.append(d[1].numpy())
+        theta_far.append(d[2].numpy())
+        steering.append(d[3].numpy())
+        integrate_theta.append(sum(theta_history) * dt)
+
+        if i > 8000:
+            break
+
+    # Convert list to numpy and stack
+    features = np.vstack(
+        (
+            np.array(theta_far),
+            np.array(theta_middle),
+            np.array(theta_near),
+            np.array(integrate_theta),
+        )
+    ).T
+
+    print(features.shape)
+
+    return np.array(steering), features
+

@@ -1,342 +1,275 @@
-import os
-
 import numpy as np
-from skimage.io import imread_collection, imread
-
-from sklearn.model_selection import train_test_split
-
+import webdataset as wds
 import torch
-from torchvision import transforms
+import scipy.interpolate
 
-from torch.utils.data import Dataset
-from torch.utils.data import DataLoader
+import matplotlib.pyplot as plt
 
-from .utils import nested_dict
+from .preprocessing import get_preprocessing_pipeline
 
-
-class TorchDataset(Dataset):
-    """All subject dataset class.
-
-    Parameters
-    ----------
-    split_ids : list
-        ids list of training or validation or traning data.
-
-    Attributes
-    ----------
-    split_ids
-
-    """
-
-    def __init__(self, data):
-        super(TorchDataset, self).__init__()
-        self.x = data['x']
-        self.y = data['y']
-
-        # This step normalizes image between 0 and 1
-        self.transform = transforms.ToTensor()
-
-    def __getitem__(self, index):
-        # Read only specific data and convert to torch tensors
-        x = self.transform(self.x[index]).type(torch.float32)
-        y = torch.from_numpy(self.y[index]).type(torch.long)
-        return x, y.squeeze(-1)
-
-    def __len__(self):
-        return self.x.shape[0]
+from .utils import (
+    rotate,
+    get_dataset_paths,
+    generate_seqs,
+    find_in_between_angle,
+    show_image,
+)
 
 
-class LargeTorchDataset(Dataset):
-    def __init__(self, hparams, dataset_type='train'):
-        # Read path
-        log = hparams['train_logs'][0]
-        self.read_path = (
-            hparams['data_dir']
-            + 'processed'
-            + '/'
-            + log
-            + '/'
-            + dataset_type
-            + '/'
-            + hparams['camera']
+def post_process_action(data, config):
+    if config['action_processing_id'] == 1:
+        action = torch.tensor(
+            [data['throttle'], (data['steer'] + 1) * 2, data['brake']]
         )
-        self.image_files = os.listdir(self.read_path)
-
-        # Get corresponding targets (autopilot actions)
-        self.file_idx = [
-            int(name.split('.')[0]) - 1 for name in self.image_files
-        ]  # file name starts from 1
-        autopilot_actions = np.genfromtxt(
-            hparams['data_dir'] + 'raw' + '/' + log + '/state.csv',
-            delimiter=',',
-            usecols=(4, 5, 6, 7),
+    elif config['action_processing_id'] == 2:
+        action = torch.tensor(
+            [
+                data['speed'] / 20,
+                data['throttle'],
+                (data['steer'] + 1) * 2,
+                data['brake'],
+            ]
         )
-        action_ind = continous_to_discreet(autopilot_actions)
-        actions = np.stack(action_ind, axis=-1)
-        self.y = actions[self.file_idx, None]
-
-        # This step normalizes image between 0 and 1
-        self.transform = transforms.ToTensor()
-
-    def _load_file(self, file_name):
-        image = imread(self.read_path + '/' + file_name, as_gray=True)
-        return image
-
-    def __getitem__(self, index):
-        # Load
-        x = self._load_file(self.image_files[index])
-
-        # Transform
-        x = self.transform(x).type(torch.float32)
-        y = torch.from_numpy(self.y[index]).type(torch.long)
-        return x, y.squeeze(-1)
-
-    def __len__(self):
-        return len(self.image_files)
-
-
-class SequentialTorchDataset(Dataset):
-    def __init__(self, hparams, dataset_type='train'):
-        # Read path
-        self.hparams = hparams
-        log = hparams['train_logs'][0]
-
-        self.read_path = (
-            hparams['data_dir']
-            + 'processed'
-            + '/'
-            + log
-            + '/'
-            + dataset_type
-            + '/'
-            + hparams['camera']
+    elif config['action_processing_id'] == 3:
+        action = torch.tensor([data['speed'] / 5.55, (data['steer'] + 1)])
+    elif config['action_processing_id'] == 4:
+        # Calculate theta near and theta far
+        theta_near, theta_middle, theta_far = calculate_theta_near_far(
+            data['waypoints'], data['location']
         )
-        self.image_files = os.listdir(self.read_path)
+        action = torch.tensor([theta_near, theta_middle, theta_far, data['steer']])
 
-        # Get corresponding targets (autopilot actions)
-        self.file_idx = [
-            int(name.split('.')[0]) - 1 for name in self.image_files
-        ]  # file name starts from 1
-        autopilot_actions = np.genfromtxt(
-            hparams['data_dir'] + 'raw' + '/' + log + '/state.csv',
-            delimiter=',',
-            usecols=(4, 5, 6, 7),
+    elif config['action_processing_id'] == 5:
+        ego_frame_waypoints = project_to_ego_frame(data)
+        points = ego_frame_waypoints[0:5, :].astype(np.float32)
+        action = torch.from_numpy(points)
+    else:
+        action = torch.tensor([data['throttle'], data['steer'], data['brake']])
+
+    return action
+
+
+def calc_ego_frame_projection(x, moving_direction):
+    theta = find_in_between_angle(moving_direction, np.array([0.0, 1.0, 0.0]))
+    projected = rotate(x[0:2].T, theta)
+    projected[0] *= -1
+    return projected
+
+
+def project_to_ego_frame(data):
+    # Direction vector
+    moving_direction = np.array(data['moving_direction'])
+
+    # Origin shift
+    shifted_waypoints = np.array(data['waypoints']) - np.array(data['location'])
+
+    # Projected points
+    projected_waypoints = np.zeros((len(shifted_waypoints), 2))
+    for i, waypoint in enumerate(shifted_waypoints):
+        projected_waypoints[i, :] = calc_ego_frame_projection(
+            waypoint, moving_direction
         )
-        action_ind = continous_to_discreet(autopilot_actions)
-        actions = np.stack(action_ind, axis=-1)
-        self.y = actions[self.file_idx, None]
-
-        # This step normalizes image between 0 and 1
-        self.transform = transforms.ToTensor()
-
-    def _load_file(self, index):
-        files = self.image_files[index : index + self.hparams['frame_skip']]
-        read_path = [self.read_path + '/' + file_name for file_name in files]
-        images = imread_collection(read_path).concatenate()
-        images = np.dot(images[..., :], [0.299, 0.587, 0.114]) / 255
-        return images
-
-    def __getitem__(self, index):
-        # Load the image
-        x = self._load_file(index)
-
-        # Transform
-        x = torch.from_numpy(x).type(torch.float32)
-        y = torch.from_numpy(self.y[index]).type(torch.long)
-        return x, y.squeeze(-1)
-
-    def __len__(self):
-        return len(self.image_files) - self.hparams['frame_skip']
+    return projected_waypoints
 
 
-def train_val_test_iterator(hparams, data_split_type=None):
-    """A function to get train, validation, and test data.
+def calc_world_projection(ego_frame_coord, moving_direction, ego_location):
 
-    Parameters
-    ----------
-    hparams : yaml
-        The hparamsuration file.
-    leave_out : bool
-        Whether to leave out some subjects training and use them in testing
+    ego_frame_coord[0] *= -1
+    #  Find the rotation angle such the movement direction is always positive
+    theta = find_in_between_angle(moving_direction, np.array([0.0, 1.0, 0.0]))
 
-    Returns
-    -------
-    dict
-        A dict containing the train and test data.
+    # Rotate the pointd back
+    re_projected = rotate(ego_frame_coord.T, -theta)
+    re_projected += ego_location
+    return re_projected
 
-    """
-    # Parameters
-    BATCH_SIZE = hparams['BATCH_SIZE']
 
-    # Get training, validation, and testing data
-    get_data = {
-        'pooled_data': get_pooled_data,
-        'leave_one_out_data': get_leave_out_data,
+def project_to_world_frame(ego_frame_waypoints, data):
+    ego_location = np.array(data['location'])
+    v_vec = np.array(data['moving_direction'])
+
+    # Projected points
+    projected_waypoints = np.zeros((len(ego_frame_waypoints), 2))
+    for i, waypoint in enumerate(ego_frame_waypoints):
+        projected_waypoints[i, :] = calc_world_projection(
+            waypoint, v_vec, ego_location[0:2]
+        )
+    return projected_waypoints
+
+
+def calculate_angle(v0, v1):
+    theta = np.arctan2(np.cross(v0, v1), np.dot(v0, v1)).astype(np.float32)
+    if theta > 3.0:
+        theta = 0.0
+    return theta
+
+
+def resample_waypoints(waypoints, current_location, resample=False):
+    if resample:
+        xy = np.array(waypoints)
+        x = xy[:, 0]
+        y = xy[:, 1]
+
+        # Add initial location
+        x = np.insert(x, 0, current_location[0])
+        y = np.insert(y, 0, current_location[1])
+
+        # Shift the frame to origin
+        # x = x - x[0]
+        # y = y - y[0]
+
+        # get the cumulative distance along the contour
+        dist = np.sqrt((x[:-1] - x[1:]) ** 2 + (y[:-1] - y[1:]) ** 2)
+        dist_along = np.concatenate(([0], dist.cumsum()))
+
+        # build a spline representation of the contour
+        try:
+            spline, u = scipy.interpolate.splprep([x, y], u=dist_along, s=0)
+            # resample it at smaller distance intervals
+            interp_d = np.linspace(dist_along[0], dist_along[-1], 10)
+            interp_x, interp_y = scipy.interpolate.splev(interp_d, spline)
+        except ValueError:
+            interp_x = x
+            interp_y = y
+
+        processed_waypoints = np.vstack((interp_x, interp_y)).T
+    else:
+        processed_waypoints = np.array(waypoints)[:, 0:2]
+    return processed_waypoints
+
+
+def calculate_theta_near_far(waypoints, location):
+    # NOTE: The angles returned are in radians.
+    # The x and y position are given in world co-ordinates, but theta near and theta far should
+    # be calculated in the direction of movement.
+
+    if len(waypoints) > 1:
+        # resample waypoints
+        current_location = np.array(location[0:2])
+        waypoints = resample_waypoints(waypoints, current_location)
+
+        # From the vectors taking ego's location as origin
+        v0 = waypoints[0] - current_location
+
+        # Select the second point as the near points
+        point_select = 1
+        v1 = waypoints[point_select] - current_location
+        theta_near = calculate_angle(v0, v1)
+
+        point_select = 2
+        v1 = waypoints[point_select] - current_location
+        theta_middle = calculate_angle(v0, v1)
+
+        # Select the fourth point as the far point
+        point_select = 4
+        v1 = waypoints[point_select] - current_location
+        theta_far = calculate_angle(v0, v1)
+    else:
+        theta_far, theta_middle, theta_near = 0.0, 0.0, 0.0
+
+    return float(theta_near), float(theta_middle), float(theta_far)
+
+
+def concatenate_samples(samples, config):
+    combined_data = {
+        k: [d.get(k) for d in samples if k in d] for k in set().union(*samples)
     }
-    data = get_data[data_split_type](hparams)
+
+    images = torch.stack(combined_data['jpeg'], dim=0)
+    preproc = get_preprocessing_pipeline(config)
+    images = preproc(images).squeeze(1)
+
+    # Crop the image
+    if config['crop']:
+        crop_size = config['image_resize'][1] - config['crop_image_resize'][1]
+        images = images[:, :crop_size, :]
+
+    last_data = samples[-1]['json']
+
+    if last_data['modified_direction'] in [-1, 5, 6]:
+        command = 4
+    else:
+        command = last_data['modified_direction']
+
+    # Post processing according to the ID
+    action = post_process_action(last_data, config)
+    n_waypoints = config['n_waypoints']
+
+    return images, command, action[0:n_waypoints, :]
+
+
+def concatenate_test_samples(samples, config):
+    combined_data = {
+        k: [d.get(k) for d in samples if k in d] for k in set().union(*samples)
+    }
+
+    images = torch.stack(combined_data['jpeg'], dim=0)
+    preproc = get_preprocessing_pipeline(config)
+    images = preproc(images).squeeze(1)
+
+    # Crop the image
+    if config['crop']:
+        crop_size = config['image_resize'][1] - config['crop_image_resize'][1]
+        images = images[:, :crop_size, :]
+
+    last_data = samples[-1]['json']
+
+    if last_data['modified_direction'] in [-1, 5, 6]:
+        command = 4
+    else:
+        command = last_data['modified_direction']
+
+    # Post processing according to the ID
+    action = post_process_action(last_data, config)
+    n_waypoints = config['n_waypoints']
+
+    return images, command, action[0:n_waypoints, :], last_data
+
+
+def webdataset_data_test_iterator(config, file_path):
+    # Get dataset path(s)
+    paths = get_dataset_paths(config)
+
+    # Parameters
+    SEQ_LEN = config['obs_size']
+
+    dataset = (
+        wds.WebDataset(file_path, shardshuffle=False)
+        .decode("torchrgb")
+        .then(generate_seqs, concatenate_test_samples, SEQ_LEN, config)
+    )
+    return dataset
+
+
+def webdataset_data_iterator(config):
+    # Get dataset path(s)
+    paths = get_dataset_paths(config)
+
+    # Parameters
+    BATCH_SIZE = config['BATCH_SIZE']
+    SEQ_LEN = config['obs_size']
+    number_workers = config['number_workers']
 
     # Create train, validation, test datasets and save them in a dictionary
     data_iterator = {}
-    train_data = TorchDataset(data['train'])
-    data_iterator['train_data_loader'] = DataLoader(
-        train_data, batch_size=BATCH_SIZE, shuffle=True
-    )
 
-    valid_data = TorchDataset(data['valid'])
-    data_iterator['val_data_loader'] = DataLoader(valid_data, batch_size=BATCH_SIZE)
+    for key, path in paths.items():
+        if path:
+            dataset = (
+                wds.WebDataset(path, shardshuffle=False)
+                .decode("torchrgb")
+                .then(generate_seqs, concatenate_samples, SEQ_LEN, config)
+            )
+            data_loader = wds.WebLoader(
+                dataset,
+                num_workers=number_workers,
+                shuffle=False,
+                batch_size=BATCH_SIZE,
+            )
+            if key in ['training', 'validation']:
+                dataset_size = 6250 * len(path)
+                data_loader.length = dataset_size // BATCH_SIZE
 
-    test_data = TorchDataset(data['test'])
-    data_iterator['test_data_loader'] = DataLoader(test_data, batch_size=BATCH_SIZE)
-
-    return data_iterator
-
-
-def large_train_val_test_iterator(hparams):
-    # Parameters
-    BATCH_SIZE = hparams['BATCH_SIZE']
-
-    # Create train, validation, test datasets
-    data_iterator = {}
-    train_data = LargeTorchDataset(hparams, dataset_type='train')
-    data_iterator['train_data_loader'] = DataLoader(
-        train_data, batch_size=BATCH_SIZE, shuffle=True
-    )
-
-    valid_data = LargeTorchDataset(hparams, dataset_type='val')
-    data_iterator['val_data_loader'] = DataLoader(valid_data, batch_size=BATCH_SIZE)
-
-    test_data = LargeTorchDataset(hparams, dataset_type='test')
-    data_iterator['test_data_loader'] = DataLoader(test_data, batch_size=BATCH_SIZE)
+            data_iterator[key] = data_loader
 
     return data_iterator
-
-
-def sequential_train_val_test_iterator(hparams):
-    # Parameters
-    BATCH_SIZE = hparams['BATCH_SIZE']
-
-    # Create train, validation, test datasets
-    data_iterator = {}
-    train_data = SequentialTorchDataset(hparams, dataset_type='train')
-    data_iterator['train_data_loader'] = DataLoader(
-        train_data, batch_size=BATCH_SIZE, shuffle=False
-    )
-
-    valid_data = SequentialTorchDataset(hparams, dataset_type='val')
-    data_iterator['val_data_loader'] = DataLoader(valid_data, batch_size=BATCH_SIZE)
-
-    test_data = SequentialTorchDataset(hparams, dataset_type='test')
-    data_iterator['test_data_loader'] = DataLoader(test_data, batch_size=BATCH_SIZE)
-
-    return data_iterator
-
-
-def continous_to_discreet(y):
-    steer = y[:, 1].copy()
-    # Discretize
-    steer[y[:, 1] > 0.05] = 2.0
-    steer[y[:, 1] < -0.05] = 0.0
-    steer[~np.logical_or(steer == 0.0, steer == 2.0)] = 1.0
-
-    # Discretize throttle and brake
-    throttle = y[:, 0]
-    brake = y[:, 2]
-
-    acc = brake.copy()
-    acc[np.logical_and(brake == 0.0, throttle == 1.0)] = 2.0
-    acc[np.logical_and(brake == 0.0, throttle == 0.5)] = 1.0
-    acc[np.logical_and(brake == 1.0, throttle == 0.0)] = 0.0
-
-    actions = np.vstack((acc, steer)).T
-    # Convert actions to indices
-    action_ind = actions[:, 0] * 3 + actions[:, 1]
-
-    return action_ind
-
-
-def get_pooled_data(hparams):
-
-    read_paths = []
-    action_ind = []
-    camera = hparams['camera']
-    for log in hparams['train_logs']:
-        read_paths.append(
-            hparams['data_dir'] + 'raw' + '/' + log + '/' + camera + '/*.jpeg'
-        )
-        autopilot_actions = np.genfromtxt(
-            hparams['data_dir'] + 'raw' + '/' + log + '/state.csv',
-            delimiter=',',
-            usecols=(4, 5, 6, 7),
-        )
-        action_ind.append(continous_to_discreet(autopilot_actions))
-
-    actions = np.stack(action_ind, axis=-1)
-    images = imread_collection(read_paths).concatenate()
-
-    # Convert to gray scale
-    images = np.dot(images[..., :], [0.299, 0.587, 0.114])
-
-    # Split train, validation, and testing
-    test_size = hparams['TEST_SIZE']
-    x = np.arange(actions.shape[0])
-    train_id, val_id, test_id = np.split(
-        x, [int((1 - 2 * (test_size)) * len(x)), int((1 - test_size) * len(x))]
-    )
-
-    # Data
-    data = nested_dict()
-    data['train']['x'] = images[train_id]
-    data['train']['y'] = actions[train_id]
-
-    data['valid']['x'] = images[val_id]
-    data['valid']['y'] = actions[val_id]
-
-    data['test']['x'] = images[test_id]
-    data['test']['y'] = actions[test_id]
-
-    return data
-
-
-def get_leave_out_data(hparams):
-    read_paths = []
-    camera = hparams['camera']
-    for log in hparams['train_logs']:
-        read_paths.append(
-            hparams['data_dir'] + 'raw' + '/' + log + '/' + camera + '/*.jpeg'
-        )
-    images = imread_collection(read_paths).concatenate()
-
-    # Autopilot actions
-
-    # Split train and validation
-    val_size = hparams['VALID_SIZE']
-    ids = np.arange(len(images))
-    train_id, val_id, _, _ = train_test_split(
-        ids, ids * 0, test_size=val_size, shuffle=True
-    )
-    train_data = images[train_id]
-    val_data = images[val_id]
-
-    # Testing data
-    read_paths = []
-    for log in hparams['test_logs']:
-        read_paths.append(
-            hparams['data_dir'] + 'raw' + '/' + log + '/' + camera + '/*.jpeg'
-        )
-    test_data = imread_collection(read_paths).concatenate()
-
-    # Data
-    data = nested_dict()
-
-    # Data
-    data = nested_dict()
-    data['train']['x'] = train_data
-    data['train']['y'] = None
-
-    data['val']['x'] = val_data
-    data['val']['y'] = None
-
-    data['test']['x'] = test_data
-    data['test']['y'] = None
-
-    return train_data, val_data, test_data

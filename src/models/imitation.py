@@ -5,6 +5,10 @@ import pytorch_lightning as pl
 from torch.optim import Adam
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 
+from pytorch_msssim import MS_SSIM
+
+from .utils import ChamferDistance
+
 
 class WeightedMSE(torch.nn.MSELoss):
     def __init__(self, weights=None):
@@ -20,9 +24,9 @@ class WeightedMSE(torch.nn.MSELoss):
             return torch.mean(super().forward(input, target))
 
 
-class Imitation(pl.LightningModule):
+class Autoencoder(pl.LightningModule):
     def __init__(self, hparams, net, data_loader):
-        super(Imitation, self).__init__()
+        super(Autoencoder, self).__init__()
         self.h_params = hparams
         self.net = net
         self.data_loader = data_loader
@@ -38,10 +42,10 @@ class Imitation(pl.LightningModule):
         x, y = batch
 
         # Predict and calculate loss
-        output = self.forward(x)
-        criterion = nn.CrossEntropyLoss()
+        output, embedding = self.forward(x)
+        criterion = MS_SSIM(data_range=1, size_average=True, channel=1)
 
-        loss = criterion(output, y)
+        loss = 1.0 - criterion(output, y)
 
         self.log('losses/train_loss', loss, on_step=False, on_epoch=True)
         return loss
@@ -50,26 +54,23 @@ class Imitation(pl.LightningModule):
         x, y = batch
 
         # Predict and calculate loss
-        output = self.forward(x)
-        criterion = nn.CrossEntropyLoss()
-        loss = criterion(output, y)
+        output, embedding = self.forward(x)
+        criterion = MS_SSIM(data_range=1, size_average=True, channel=1)
+        loss = 1.0 - criterion(output, y)
 
         self.log('losses/val_loss', loss, on_step=False, on_epoch=True)
         return loss
 
     def train_dataloader(self):
-        return self.data_loader['train_dataloader']
+        return self.data_loader['training']
 
     def val_dataloader(self):
-        return self.data_loader['val_dataloader']
-
-    def test_dataloader(self):
-        return self.data_loader['test_dataloader']
+        return self.data_loader['validation']
 
     def configure_optimizers(self):
         optimizer = Adam(self.parameters(), lr=self.h_params['LEARNING_RATE'])
         lr_scheduler = ReduceLROnPlateau(
-            optimizer, patience=10, factor=0.9, verbose=True
+            optimizer, patience=5, factor=0.95, verbose=True
         )
 
         scheduler = {
@@ -78,18 +79,22 @@ class Imitation(pl.LightningModule):
             # val_checkpoint_on is val_loss passed in as checkpoint_on
             'monitor': 'losses/val_loss',
         }
-        return [optimizer]
+
+        if self.h_params['check_point_path'] is None:
+            return [optimizer], [scheduler]
+        else:
+            return [optimizer]
 
 
-class WarmStart(pl.LightningModule):
+class Imitation(pl.LightningModule):
     def __init__(self, hparams, net, data_loader):
-        super(WarmStart, self).__init__()
+        super(Imitation, self).__init__()
         self.h_params = hparams
         self.net = net
         self.data_loader = data_loader
 
         # Save hyperparameters
-        self.save_hyperparameters(self.h_params)
+        # self.save_hyperparameters(self.h_params)
 
     def forward(self, x, command):
         output = self.net.forward(x, command)

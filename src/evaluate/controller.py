@@ -15,6 +15,62 @@ except ModuleNotFoundError:
 from benchmark.navigation.utils import get_speed
 
 
+class PIController:
+    def __init__(
+        self, max_throttle=0.50, max_brake=0.3, max_steering=0.8,
+    ):
+        self._dt = 1.0 / 20.0
+        self.controller_params = {
+            'K_P_far': 0.5249113,
+            'K_P_near': -0.53373547,
+            'K_I_near': 0.04510265,
+            'dt': self._dt,
+        }
+
+        self.max_brake = max_brake
+        self.max_throt = max_throttle
+        self.max_steer = max_steering
+
+        self.past_steering = 0
+        self.theta_near_history = deque([0, 0, 0, 0], maxlen=4)
+
+    def run_step(self, theta_near, theta_far, acceleration, steer):
+        control = carla.VehicleControl()
+        if acceleration >= 0.0:
+            control.throttle = min(acceleration, self.max_throt)
+            control.brake = 0.0
+        else:
+            control.throttle = 0.0
+            control.brake = min(abs(acceleration), self.max_brake)
+
+        # Calculate the steering
+        self.theta_near_history.append(theta_near)
+        steering = (
+            self.controller_params['K_P_far'] * theta_far
+            + self.controller_params['K_P_near'] * theta_near
+            + self.controller_params['K_I_near']
+            * self._dt
+            * sum(self.theta_near_history)
+        )
+        print(steering)
+        current_steering = steering
+        if current_steering > self.past_steering + 0.1:
+            current_steering = self.past_steering + 0.1
+        elif current_steering < self.past_steering - 0.1:
+            current_steering = self.past_steering - 0.1
+
+        if current_steering >= 0:
+            steering = min(self.max_steer, current_steering)
+        else:
+            steering = max(-self.max_steer, current_steering)
+
+        control.steer = steering
+        control.hand_brake = False
+        control.manual_gear_shift = False
+        self.past_steering = steering
+        return control
+
+
 class VehiclePIDController:
     """
     VehiclePIDController is the combination of two PID controllers
