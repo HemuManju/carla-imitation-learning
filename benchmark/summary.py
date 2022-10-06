@@ -8,6 +8,7 @@ def calulcate_distance(df):
 
 def consolidate_results(df):
     results = {}
+    not_stopped_percent = df[df['speed'] > 0.1].count()[0] / len(df.index) * 100
 
     # Is successful
     results['successfull'] = df['reached_destination'].values[-1]
@@ -19,8 +20,9 @@ def consolidate_results(df):
     results['n_vehicle_collisions'] = sum(df['collision_vehicle'].diff().dropna() > 0)
     results['n_other_collisions'] = sum(df['collision_other'].diff().dropna() > 0)
     results['n_collisions'] = sum(((df['n_collisions'] > 0) * 1).diff().dropna() > 0)
+    # results['n_collisions'] = df['n_collisions'].values[-1]
 
-    if (results['n_collisions'] == 0) and not results['successfull']:
+    if (not_stopped_percent < 75.0) and not results['successfull']:
         results['not_stalled'] = False
     else:
         results['not_stalled'] = True
@@ -39,6 +41,14 @@ def consolidate_results(df):
 
     squared_sum = df['pos_x'].diff().dropna() ** 2 + df['pos_y'].diff().dropna() ** 2
     results['distance_travelled'] = np.sqrt(squared_sum).sum()
+
+    infractions = (
+        +results['n_vehicle_collisions']
+        + results['n_predistrain_collision']
+        # + results['n_other_collisions']
+        + results['n_lane_invasion']
+    )
+    results['infractions'] = infractions * (1000 / results['distance_travelled'])
 
     return results
 
@@ -66,4 +76,3 @@ def summarize(read_path):
         final_summary.index
     )
     print(f'% of successfully completed episodes={sucessful_episodes}')
-

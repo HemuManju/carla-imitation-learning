@@ -25,7 +25,7 @@ beta: 0.1
 
 ##-----------------------------------------------------#
 # Data splitting scheme
-navigation_types: ['one_curve'] # 'straight', , 'navigation'
+navigation_types: ['navigation'] # 'straight', , 'navigation'
 data_split:
   training:
     town: ['Town01']

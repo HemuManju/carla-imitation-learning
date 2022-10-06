@@ -273,13 +273,14 @@ class CIRLFutureLatent(pl.LightningModule):
         self.cfg = model_config
         obs_size = self.cfg['obs_size']
         n_actions = self.cfg['n_actions']
+        dropout = self.cfg['DROP_OUT']
 
         # Example inputs
         self.example_input_array = torch.randn((5, obs_size, 256, 256))
         self.example_command = torch.tensor([1, 0, 2, 3, 1])
 
         self.back_bone_net = BaseConvNet(obs_size)
-        self.action_net = BranchNet(output_size=n_actions)
+        self.action_net = BranchNet(output_size=n_actions, dropout=dropout)
 
         # Future latent vector prediction
         self.future_latent_prediction = self.set_parameter_requires_grad(
