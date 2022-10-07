@@ -1,0 +1,43 @@
+---------------------------------------
+Begin PBS Prologue Thu Oct  6 12:12:09 EDT 2022
+Job ID:     5005870.sched-torque.pace.gatech.edu
+User ID:    hmanjunatha6
+Job name:   imitation
+Queue:      inferno
+End PBS Prologue Thu Oct  6 12:12:09 EDT 2022
+---------------------------------------
+stty: standard input: Inappropriate ioctl for device
+/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/torch/nn/modules/lazy.py:178: UserWarning: Lazy modules are a new feature under heavy development so changes to the API or functionality can happen at any moment.
+  warnings.warn('Lazy modules are a new feature under heavy development '
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Missing logger folder: logs/2022-10-06/IMITATION/imitation_navigation
+
+  | Name | Type                | Params
+---------------------------------------------
+0 | net  | CIRLRegressorPolicy | 10.8 M
+---------------------------------------------
+10.8 M    Trainable params
+0         Non-trainable params
+10.8 M    Total params
+43.051    Total estimated model params size (MB)
+/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:631: UserWarning: Checkpoint directory /storage/scratch1/4/hmanjunatha6/carla-imitation-learning/logs/2022-10-06/IMITATION exists and is not empty.
+  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
+pygame 2.1.2 (SDL 2.0.16, Python 3.9.10)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[1;32mRunning the block    |  imitation_with_basenet_gru[0m
+=>> PBS: job killed: walltime 30043 exceeded limit 30000
+---------------------------------------
+Begin PBS Epilogue Thu Oct  6 20:33:02 EDT 2022
+Job ID:     5005870.sched-torque.pace.gatech.edu
+User ID:    hmanjunatha6
+Job name:   imitation
+Resources:  nodes=1:ppn=4:gpus=1:TeslaV100-16GB,pmem=8gb,walltime=08:20:00,neednodes=1:ppn=4:gpus=1:TeslaV100-16GB
+Rsrc Used:  cput=10:59:31,vmem=38079968kb,walltime=08:20:53,mem=2721812kb,energy_used=0
+Queue:      inferno
+Nodes:     
+atl1-1-02-005-30.pace.gatech.edu
+End PBS Epilogue Thu Oct  6 20:33:02 EDT 2022
+---------------------------------------

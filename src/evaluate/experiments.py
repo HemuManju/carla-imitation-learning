@@ -132,9 +132,6 @@ class CORL2017(BasicExperiment):
 
         observation = {}
         image = sensor_data['rgb']
-        # Crop the image
-        # crop_size = 256 - (2 * self.config['image_resize'][1])
-        # image = image[crop_size:, :, :]
         image_tensor = transforms.ToTensor()(image.copy())
 
         if not self.image_deque:
@@ -150,6 +147,18 @@ class CORL2017(BasicExperiment):
         # Add speed to observation
         observation['speed'] = get_speed(self.hero)
         observation['steer'] = self.hero.get_control().steer
+
+        # Get moving direction
+        vehicle_transform = self.hero.get_transform()
+        v_vec = vehicle_transform.get_forward_vector()
+        observation['moving_direction'] = [v_vec.x, v_vec.y, 0.0]
+
+        # Get location
+        location = self.hero.get_location()
+        observation['location'] = [location.x, location.y, location.z]
+
+        # Get speed
+        observation['current_speed'] = get_speed(self.hero)
 
         return observation
 

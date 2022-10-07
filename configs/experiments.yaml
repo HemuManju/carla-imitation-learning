@@ -10,8 +10,8 @@ weathers: [
 towns: ['Town01']
 navigation_types: ['navigation'] # 'straight',, 'navigation', 'one_curve'
 background_activity:
-  n_vehicles: 20
-  n_walkers: 10
+  n_vehicles: 0
+  n_walkers: 0
   tm_hybrid_mode: True
   seed: 1337
 repeat: 1
@@ -24,9 +24,11 @@ others:
 # Other parameters
 image_size: [1, 256, 256]
 image_resize: [1, 128, 128]
+crop: True
+crop_image_resize: [1, 64, 128]
 alpha: 0.75
 beta: 0.1
-seq_length: 2
+seq_length: 1
 
 ##------------------Vehicle config------------------##
 vehicle:
@@ -48,7 +50,7 @@ vehicle:
       type: 'sensor.camera.rgb'
       image_size_x: 256
       image_size_y: 256
-      transform: '1.25,0,1.85,0,0,0'
+      transform: '1.25,0,1.85,-90,0,0'
   sensors_process:
     normalized: True
     gray_scale: True

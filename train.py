@@ -28,7 +28,7 @@ from src.architectures.nets import (
 
 from src.models.imitation import Imitation
 from src.models.utils import load_checkpoint, number_parameters
-from src.evaluate.agents import CILAgent
+from src.evaluate.agents import PIDCILAgent
 from src.evaluate.experiments import CORL2017
 
 from benchmark.run_benchmark import Benchmarking
@@ -38,7 +38,7 @@ from benchmark.summary import summarize
 import yaml
 from utils import skip_run, get_num_gpus
 
-with skip_run('run', 'imitation_with_basenet_gru') as check, check():
+with skip_run('skip', 'imitation_with_basenet_gru') as check, check():
     # Load the configuration
     cfg = yaml.load(open('configs/imitation.yaml'), Loader=yaml.SafeLoader)
     cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/IMITATION'
@@ -81,7 +81,7 @@ with skip_run('run', 'imitation_with_basenet_gru') as check, check():
         max_epochs=cfg['NUM_EPOCHS'],
         logger=logger,
         callbacks=[checkpoint_callback],
-        enable_progress_bar=True,
+        enable_progress_bar=False,
     )
 
     trainer.fit(model)
@@ -114,7 +114,7 @@ with skip_run('skip', 'basenet_gru_validation') as check, check():
     # Load the dataloader
     dataset = imitation_dataset.webdataset_data_test_iterator(
         cfg,
-        file_path=f'/home/hemanth/Desktop/carla_data/Town01_NAVIGATION/{navigation_type}/Town01_HardRainNoon_cautious_000002.tar',
+        file_path=f'/home/hemanth/Desktop/carla_data/Town01_NAVIGATION/{navigation_type}/Town01_HardRainNoon_cautious_000007.tar',
     )
 
     predicted_waypoints = []
@@ -260,7 +260,7 @@ with skip_run('skip', 'imitation_with_carnet') as check, check():
         )
     trainer.fit(model)
 
-with skip_run('skip', 'benchmark_trained_model') as check, check():
+with skip_run('skip', 'benchmark_gru_model') as check, check():
     # Load the configuration
     cfg = yaml.load(open('configs/imitation.yaml'), Loader=yaml.SafeLoader)
 
@@ -285,23 +285,23 @@ with skip_run('skip', 'benchmark_trained_model') as check, check():
 
         # Update the model
         restore_config = {
-            'checkpoint_path': f'logs/2022-08-25/WARMSTART/imitation_{navigation_type}.ckpt'
+            'checkpoint_path': f'logs/2022-10-06/IMITATION//imitation_{navigation_type}.ckpt'
         }
 
         model = Imitation.load_from_checkpoint(
             restore_config['checkpoint_path'],
             hparams=cfg,
-            net=CIRLBasePolicy(cfg),
+            net=CIRLRegressorPolicy(cfg),
             data_loader=None,
         )
 
         # Change agent
-        agent = CILAgent(model, cfg)
-        # agent = PIDCILAgent(model, cfg)
-        # agent = PIThetaNeaFarAgent(model, cfg)
+        agent = PIDCILAgent(model=model, config=cfg)
+
+        # Setup the benchmark
+        benchmark = Benchmarking(core, cfg, agent, experiment_suite)
 
         # Run the benchmark
-        benchmark = Benchmarking(core, cfg, agent, experiment_suite)
         benchmark.run(config, exp_id)
 
     # Kill all servers
@@ -365,7 +365,7 @@ with skip_run('skip', 'benchmark_trained_carnet_model') as check, check():
 
 with skip_run('skip', 'summarize_benchmark') as check, check():
     # Load the configuration
-    cfg = yaml.load(open('configs/warmstart.yaml'), Loader=yaml.SafeLoader)
+    cfg = yaml.load(open('configs/imitation.yaml'), Loader=yaml.SafeLoader)
     cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/WARMSTART'
 
     # towns = ['Town02', 'Town01']
@@ -379,7 +379,7 @@ with skip_run('skip', 'summarize_benchmark') as check, check():
     for town, weather, navigation_type in itertools.product(
         towns, weathers, navigation_types
     ):
-        path = f'logs/benchmark_results/{town}_{navigation_type}_{weather}_0/measurements.csv'
+        path = f'logs/benchmark_results/{town}_{navigation_type}_{weather}/measurements.csv'
         print('-' * 32)
         print(town, weather, navigation_type)
         summarize(path)

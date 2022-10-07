@@ -89,6 +89,8 @@ class Benchmarking:
     def reset(self):
         self.experiment.reset()
 
+        self.agent.reset()
+
         # Tick once and get the observations
         sensor_data = self.experiment.tick(None)
         observation = self.experiment.get_observation(sensor_data)

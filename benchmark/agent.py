@@ -6,6 +6,9 @@ class Agent(object):
     def __init__(self):
         self.__metaclass__ = abc.ABCMeta
 
+    def reset(self):
+        pass
+
     @abc.abstractmethod
     def compute_control(self, observation):
         """

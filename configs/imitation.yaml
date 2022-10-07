@@ -39,7 +39,7 @@ action_processing_id: 5 # 1, 2, 3, 4, 5
 
 ##-----------------------------------------------------#
 # Data splitting scheme
-navigation_types: ['navigation'] # 'straight', , 'navigation'
+navigation_types: ['one_curve'] # 'straight', , 'navigation'
 data_split:
   training:
     town: ['Town01']
@@ -90,9 +90,9 @@ carla_server:
   resolution_x: 600
   resolution_y: 600
   quality_level: 'Low'
-  enable_map_assets: True
-  enable_rendering: True
-  show_display: True
+  enable_map_assets: False
+  enable_rendering: False
+  show_display: False
   carla_path: '/home/hemanth/Carla/CARLA_0.9.11'
 
 pytorch_seed: 1337
