@@ -3,7 +3,7 @@
 #PBS -A GT-hmanjunatha6                     # account to which job is charged, ex: GT-pt43
 #PBS -l nodes=1:ppn=4:gpus=1:TeslaV100-16GB # number of nodes and cores per node required
 #PBS -l pmem=8gb             		        # memory per core
-#PBS -l walltime=500:00			            # duration of the job (ex: 15 min)
+#PBS -l walltime=1000:00			        # duration of the job (ex: 15 min)
 #PBS -q inferno              		        # queue name (where job is submitted)
 #PBS -j oe                   		        # combine output and error messages into 1 file
 #PBS -o results.out          		        # output file name

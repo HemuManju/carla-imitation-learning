@@ -27,7 +27,7 @@ from .helper import join_dicts
 BASE_CORE_CONFIG = {
     "host": "localhost",  # Client host
     "timeout": 10.0,  # Timeout of the client
-    "timestep": 0.1,  # Time step of the simulation
+    "timestep": 0.05,  # Time step of the simulation
     "retries_on_error": 25,  # Number of tries to connect to the client
     "resolution_x": 600,  # Width of the server spectator camera
     "resolution_y": 600,  # Height of the server spectator camera

@@ -14,6 +14,8 @@ except ModuleNotFoundError:
     pass
 from benchmark.navigation.utils import get_speed
 
+from src.dataset.imitation_dataset import find_in_between_angle
+
 
 def find_distance(waypoint, location):
     dist = np.linalg.norm(waypoint - np.array(location)[0:2])
@@ -119,6 +121,9 @@ class VehiclePIDController:
         self._lon_controller = PIDLongitudinalController(**args_longitudinal)
         self._lat_controller = PIDLateralController(offset, **args_lateral)
 
+        self.change_lateral_PID(args_lateral)
+        self.change_longitudinal_PID(args_longitudinal)
+
     def run_step(self, target_speed, waypoint, observation):
         """
         Execute one step of control invoking both lateral and longitudinal
@@ -141,7 +146,7 @@ class VehiclePIDController:
             control.brake = min(abs(acceleration), self.max_brake)
 
         # Steering regulation: changes cannot happen abruptly, can't steer too much.
-        diff = 0.25
+        diff = 0.1
         if current_steering > self.past_steering + diff:
             current_steering = self.past_steering + diff
         elif current_steering < self.past_steering - diff:
@@ -173,7 +178,7 @@ class PIDLongitudinalController:
     PIDLongitudinalController implements longitudinal control using a PID.
     """
 
-    def __init__(self, K_P=1.0, K_I=0.0, K_D=0.0, dt=0.05):
+    def __init__(self, K_P=1.0, K_I=0.05, K_D=0.0, dt=0.1):
         """
         Constructor method.
 
@@ -240,7 +245,7 @@ class PIDLateralController:
     PIDLateralController implements lateral control using a PID.
     """
 
-    def __init__(self, offset=0, K_P=1.0, K_I=0.0, K_D=0.0, dt=0.05):
+    def __init__(self, offset=0, K_P=1.95, K_I=0.5, K_D=0.2, dt=0.1):
         """
         Constructor method.
 

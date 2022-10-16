@@ -40,7 +40,9 @@ def consolidate_results(df):
     # Distance travelled
 
     squared_sum = df['pos_x'].diff().dropna() ** 2 + df['pos_y'].diff().dropna() ** 2
-    results['distance_travelled'] = np.sqrt(squared_sum).sum()
+    results['distance_travelled'] = np.sqrt(
+        np.array(squared_sum, dtype=np.float64)
+    ).sum()
 
     infractions = (
         +results['n_vehicle_collisions']
@@ -54,7 +56,7 @@ def consolidate_results(df):
 
 
 def summarize(read_path):
-    df = pd.read_csv(read_path)
+    df = pd.read_csv(read_path, index_col=0)
 
     new_labels = ['iteration', 'exp_id', 'navigation_type']
     df = df.set_index(keys=new_labels)

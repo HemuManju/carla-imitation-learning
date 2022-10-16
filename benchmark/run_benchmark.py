@@ -1,6 +1,8 @@
 import os
 import csv
+import gc
 
+import pandas as pd
 
 from benchmark.core.carla_core import kill_all_servers
 
@@ -51,6 +53,15 @@ class DataRecorder:
             )
         # Create a directory
         create_directory(self.write_path)
+        self.all_data = []
+
+    def is_csv_empty(self, path):
+        with open(path) as csvfile:
+            reader = csv.reader(csvfile)
+            for i, _ in enumerate(reader):
+                if i:  # found the second row
+                    return False
+        return True
 
     def create_csv_file(self, init_data):
         if self.cfg['file_name'] is None:
@@ -63,8 +74,20 @@ class DataRecorder:
             self.writer = csv.DictWriter(self.csvfile, fieldnames=init_data.keys())
             self.writer.writeheader()
 
-    def write(self, data):
-        self.writer.writerow(data)
+    def log_data(self, data):
+        self.all_data.append(data)
+
+    def write(self):
+        df = pd.DataFrame(self.all_data)
+        df.to_csv(
+            self.path_to_file,
+            mode='a',
+            index=False,
+            header=self.is_csv_empty(self.path_to_file),
+        )
+        del self.all_data
+        gc.collect()
+        self.all_data = []
 
     def close(self):
         self.csvfile.close()
@@ -145,7 +168,10 @@ class Benchmarking:
                         'town': config['town'],
                     }
                 )
-                self.data_recorder.write(data_to_log)
+                self.data_recorder.log_data(data_to_log)
+
+            # Write to CSV
+            self.data_recorder.write()
 
         except KeyboardInterrupt:
             kill_all_servers()

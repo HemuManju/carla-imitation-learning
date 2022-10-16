@@ -21,6 +21,7 @@ def post_process_action(data, config):
         action = torch.tensor(
             [data['throttle'], (data['steer'] + 1) * 2, data['brake']]
         )
+
     elif config['action_processing_id'] == 2:
         action = torch.tensor(
             [
@@ -32,6 +33,7 @@ def post_process_action(data, config):
         )
     elif config['action_processing_id'] == 3:
         action = torch.tensor([data['speed'] / 5.55, (data['steer'] + 1)])
+
     elif config['action_processing_id'] == 4:
         # Calculate theta near and theta far
         theta_near, theta_middle, theta_far = calculate_theta_near_far(
@@ -40,9 +42,16 @@ def post_process_action(data, config):
         action = torch.tensor([theta_near, theta_middle, theta_far, data['steer']])
 
     elif config['action_processing_id'] == 5:
+        n_waypoints = config['n_waypoints']
         ego_frame_waypoints = project_to_ego_frame(data)
-        points = ego_frame_waypoints[0:5, :].astype(np.float32)
+        points = ego_frame_waypoints[0:n_waypoints, :].astype(np.float32)
         action = torch.from_numpy(points)
+
+    elif config['action_processing_id'] == 6:
+        n_waypoints = config['n_waypoints']
+        ego_frame_waypoints = project_to_ego_frame(data)
+        points = ego_frame_waypoints[0:n_waypoints, :].astype(np.float32)
+        action = (torch.from_numpy(points), torch.tensor(data['speed']))
     else:
         action = torch.tensor([data['throttle'], data['steer'], data['brake']])
 
@@ -193,9 +202,8 @@ def concatenate_samples(samples, config):
 
     # Post processing according to the ID
     action = post_process_action(last_data, config)
-    n_waypoints = config['n_waypoints']
 
-    return images, command, action[0:n_waypoints, :]
+    return images, command, action
 
 
 def concatenate_test_samples(samples, config):
@@ -223,7 +231,7 @@ def concatenate_test_samples(samples, config):
     action = post_process_action(last_data, config)
     n_waypoints = config['n_waypoints']
 
-    return images, command, action[0:n_waypoints, :], last_data
+    return images, command, action, last_data
 
 
 def webdataset_data_test_iterator(config, file_path):

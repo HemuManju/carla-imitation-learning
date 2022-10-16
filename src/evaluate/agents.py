@@ -40,13 +40,9 @@ class BaseAgent(Agent):
 
     def _control_function(self, image_input, command_input):
         with torch.no_grad():
-            actions = (
-                self.model(
-                    image_input.cuda(), torch.tensor(command_input).unsqueeze(0).cuda()
-                )
-                .cpu()
-                .numpy()
-            )[0].tolist()
+            actions = self.model(
+                image_input.cuda(), torch.tensor(command_input).unsqueeze(0).cuda()
+            )
         return actions
 
 
@@ -262,7 +258,7 @@ class PIDCILAgent(BaseAgent):
         super().__init__(model, config, avoid_stopping, debug)
 
         # Base parameters
-        self._dt = 1.0 / 20.0
+        self._dt = 0.05
         self._target_speed = 20.0  # Km/h
         self._sampling_radius = 2.0
         self._args_lateral_dict = {'K_P': 1.95, 'K_I': 0.05, 'K_D': 0.2, 'dt': self._dt}
@@ -312,7 +308,8 @@ class PIDCILAgent(BaseAgent):
             command = observation['command']
 
         # Get the control
-        waypoints = self._control_function(images, command)
+        output = self._control_function(images, command)
+        waypoints, speed = output[0][0].cpu().numpy(), output[1][0].cpu().numpy()
         world_frame_waypoints = project_to_world_frame(np.array(waypoints), observation)
 
         if self.current_waypoint is None:
@@ -324,15 +321,12 @@ class PIDCILAgent(BaseAgent):
         if dist < 1.0:
             self.current_waypoint = world_frame_waypoints[1, :]
 
-        target_speed = 10.0
-        control = self.pid_controller.run_step(
-            target_speed=target_speed,
-            waypoint=self.current_waypoint,
-            observation=observation,
-        )
+        if command == 3:
+            speed = 10.0
 
-        if command in [3] and command not in [1, 2]:
-            control.steer = 0
+        control = self.pid_controller.run_step(
+            target_speed=10.0, waypoint=self.current_waypoint, observation=observation,
+        )
 
         return control
 

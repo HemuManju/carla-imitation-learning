@@ -37,6 +37,7 @@ class CORL2017(BasicExperiment):
         self.max_time_idle = self.cfg["others"]["max_time_idle"]
         self.max_time_episode = self.cfg["others"]["max_time_episode"]
         self.image_deque = deque(maxlen=self.cfg['seq_length'])
+        self.steer_history = deque(maxlen=100)
 
     def _construct_experiment_config(self, base_config, weather, town, navigation_type):
         # Update the spawn points
@@ -74,11 +75,13 @@ class CORL2017(BasicExperiment):
         self.time_episode = 0
         self.done_time_idle = False
         self.done_falling = False
+        self.circling = False
         self.done_time_episode = False
         self.n_collision = 0
         self.n_lane_invasion = 0
         self.distance_to_destination = 2000
         self.image_deque.clear()
+        self.steer_history.clear()
 
         # Set the planner
         self.route_planner = PathPlanner(
@@ -195,6 +198,9 @@ class CORL2017(BasicExperiment):
         data['acceleration'] = get_acceleration(self.hero)
         data['speed'] = get_speed(self.hero)
 
+        # History of the steering
+        self.steer_history.append(data['steer'])
+
         # Sensor parameters
         sensor_summary = self.process_sensor_data(sensor_data)
         data.update(sensor_summary)
@@ -220,6 +226,13 @@ class CORL2017(BasicExperiment):
         # Distance to final waypoint
         self.distance_to_destination = self.get_distance_to_destination()
 
+        # Looping
+        if (
+            np.mean(np.round(self.steer_history, decimals=1)) == -0.8
+            or np.mean(np.round(self.steer_history, decimals=1)) == 0.8
+        ):
+            self.circling = True
+
         return (
             self.done_time_idle
             or self.done_falling
@@ -227,4 +240,5 @@ class CORL2017(BasicExperiment):
             or self.route_planner.done()
             or (self.distance_to_destination < 2.5)
             or (self.n_collision > 200)
+            or self.circling
         )

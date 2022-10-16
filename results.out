@@ -17,7 +17,7 @@ Missing logger folder: logs/2022-10-06/IMITATION/imitation_navigation
 
   | Name | Type                | Params
 ---------------------------------------------
-0 | net  | CIRLRegressorPolicy | 10.8 M
+0 | net  | CIRLWaypointPolicy | 10.8 M
 ---------------------------------------------
 10.8 M    Trainable params
 0         Non-trainable params
@@ -37,7 +37,193 @@ Job name:   imitation
 Resources:  nodes=1:ppn=4:gpus=1:TeslaV100-16GB,pmem=8gb,walltime=08:20:00,neednodes=1:ppn=4:gpus=1:TeslaV100-16GB
 Rsrc Used:  cput=10:59:31,vmem=38079968kb,walltime=08:20:53,mem=2721812kb,energy_used=0
 Queue:      inferno
-Nodes:     
+Nodes:
 atl1-1-02-005-30.pace.gatech.edu
 End PBS Epilogue Thu Oct  6 20:33:02 EDT 2022
+---------------------------------------
+---------------------------------------
+Begin PBS Prologue Fri Oct  7 03:57:24 EDT 2022
+Job ID:     5013353.sched-torque.pace.gatech.edu
+User ID:    hmanjunatha6
+Job name:   imitation
+Queue:      inferno
+End PBS Prologue Fri Oct  7 03:57:24 EDT 2022
+---------------------------------------
+stty: standard input: Inappropriate ioctl for device
+/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/torch/nn/modules/lazy.py:178: UserWarning: Lazy modules are a new feature under heavy development so changes to the API or functionality can happen at any moment.
+  warnings.warn('Lazy modules are a new feature under heavy development '
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Missing logger folder: logs/2022-10-07/IMITATION/imitation_navigation
+
+  | Name | Type                | Params
+---------------------------------------------
+0 | net  | CIRLWaypointPolicy | 10.8 M
+---------------------------------------------
+10.8 M    Trainable params
+0         Non-trainable params
+10.8 M    Total params
+43.051    Total estimated model params size (MB)
+pygame 2.1.2 (SDL 2.0.16, Python 3.9.10)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[1;32mRunning the block    |  imitation_with_basenet_gru[0m
+=>> PBS: job killed: walltime 30033 exceeded limit 30000
+---------------------------------------
+Begin PBS Epilogue Fri Oct  7 12:17:57 EDT 2022
+Job ID:     5013353.sched-torque.pace.gatech.edu
+User ID:    hmanjunatha6
+Job name:   imitation
+Resources:  nodes=1:ppn=4:gpus=1:TeslaV100-16GB,pmem=8gb,walltime=08:20:00,neednodes=1:ppn=4:gpus=1:TeslaV100-16GB
+Rsrc Used:  cput=10:59:45,vmem=38007916kb,walltime=08:20:33,mem=2664260kb,energy_used=0
+Queue:      inferno
+Nodes:
+atl1-1-02-005-30.pace.gatech.edu
+End PBS Epilogue Fri Oct  7 12:17:57 EDT 2022
+---------------------------------------
+---------------------------------------
+Begin PBS Prologue Thu Oct 13 04:02:29 EDT 2022
+Job ID:     5041897.sched-torque.pace.gatech.edu
+User ID:    hmanjunatha6
+Job name:   imitation
+Queue:      inferno
+End PBS Prologue Thu Oct 13 04:02:29 EDT 2022
+---------------------------------------
+stty: standard input: Inappropriate ioctl for device
+[88mSkipping the block   |  imitation_with_basenet_gru[0m
+/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/torch/nn/modules/lazy.py:178: UserWarning: Lazy modules are a new feature under heavy development so changes to the API or functionality can happen at any moment.
+  warnings.warn('Lazy modules are a new feature under heavy development '
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Missing logger folder: logs/2022-10-13/IMITATION/imitation_one_curve
+
+  | Name | Type                    | Params
+-------------------------------------------------
+0 | net  | CIRLWaypointSpeedPolicy | 12.3 M
+-------------------------------------------------
+12.3 M    Trainable params
+0         Non-trainable params
+12.3 M    Total params
+49.359    Total estimated model params size (MB)
+pygame 2.1.2 (SDL 2.0.16, Python 3.9.10)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[1;32mRunning the block    |  imitation_with_basenet_speed_gru[0m
+Epoch    26: reducing learning rate of group 0 to 9.5000e-05.
+Epoch    32: reducing learning rate of group 0 to 9.0250e-05.
+=>> PBS: job killed: walltime 60039 exceeded limit 60000
+---------------------------------------
+Begin PBS Epilogue Thu Oct 13 20:43:08 EDT 2022
+Job ID:     5041897.sched-torque.pace.gatech.edu
+User ID:    hmanjunatha6
+Job name:   imitation
+Resources:  nodes=1:ppn=4:gpus=1:TeslaV100-16GB,pmem=8gb,walltime=16:40:00,neednodes=1:ppn=4:gpus=1:TeslaV100-16GB
+Rsrc Used:  cput=19:22:37,vmem=38315832kb,walltime=16:40:39,mem=2777124kb,energy_used=0
+Queue:      inferno
+Nodes:
+atl1-1-02-005-28.pace.gatech.edu
+End PBS Epilogue Thu Oct 13 20:43:08 EDT 2022
+---------------------------------------
+---------------------------------------
+Begin PBS Prologue Sat Oct 15 02:23:21 EDT 2022
+Job ID:     5051613.sched-torque.pace.gatech.edu
+User ID:    hmanjunatha6
+Job name:   imitation
+Queue:      inferno
+End PBS Prologue Sat Oct 15 02:23:21 EDT 2022
+---------------------------------------
+stty: standard input: Inappropriate ioctl for device
+[88mSkipping the block   |  imitation_with_basenet_gru[0m
+/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/torch/nn/modules/lazy.py:178: UserWarning: Lazy modules are a new feature under heavy development so changes to the API or functionality can happen at any moment.
+  warnings.warn('Lazy modules are a new feature under heavy development '
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+---------------------------------------
+Begin PBS Epilogue Sat Oct 15 02:27:02 EDT 2022
+Job ID:     5051613.sched-torque.pace.gatech.edu
+User ID:    hmanjunatha6
+Job name:   imitation
+Resources:  nodes=1:ppn=4:gpus=1:TeslaV100-16GB,pmem=8gb,walltime=16:40:00,neednodes=1:ppn=4:gpus=1:TeslaV100-16GB
+Rsrc Used:  cput=00:00:10,vmem=10269152kb,walltime=00:03:41,mem=1374908kb,energy_used=0
+Queue:      inferno
+Nodes:
+atl1-1-02-005-27.pace.gatech.edu
+End PBS Epilogue Sat Oct 15 02:27:02 EDT 2022
+---------------------------------------
+---------------------------------------
+Begin PBS Prologue Sat Oct 15 02:46:54 EDT 2022
+Job ID:     5051614.sched-torque.pace.gatech.edu
+User ID:    hmanjunatha6
+Job name:   imitation
+Queue:      inferno
+End PBS Prologue Sat Oct 15 02:46:54 EDT 2022
+---------------------------------------
+stty: standard input: Inappropriate ioctl for device
+[88mSkipping the block   |  imitation_with_basenet_gru[0m
+/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/torch/nn/modules/lazy.py:178: UserWarning: Lazy modules are a new feature under heavy development so changes to the API or functionality can happen at any moment.
+  warnings.warn('Lazy modules are a new feature under heavy development '
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+Missing logger folder: logs/2022-10-15/IMITATION/imitation_navigation
+
+  | Name | Type                    | Params
+-------------------------------------------------
+0 | net  | CIRLWaypointSpeedPolicy | 12.3 M
+-------------------------------------------------
+12.3 M    Trainable params
+0         Non-trainable params
+12.3 M    Total params
+49.359    Total estimated model params size (MB)
+pygame 2.1.2 (SDL 2.0.16, Python 3.9.10)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[1;32mRunning the block    |  imitation_with_basenet_speed_gru[0m
+---------------------------------------
+Begin PBS Prologue Sat Oct 15 04:29:37 EDT 2022
+Job ID:     5051620.sched-torque.pace.gatech.edu
+User ID:    hmanjunatha6
+Job name:   imitation
+Queue:      inferno
+End PBS Prologue Sat Oct 15 04:29:37 EDT 2022
+---------------------------------------
+stty: standard input: Inappropriate ioctl for device
+[88mSkipping the block   |  imitation_with_basenet_gru[0m
+/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/torch/nn/modules/lazy.py:178: UserWarning: Lazy modules are a new feature under heavy development so changes to the API or functionality can happen at any moment.
+  warnings.warn('Lazy modules are a new feature under heavy development '
+GPU available: True, used: True
+TPU available: False, using: 0 TPU cores
+IPU available: False, using: 0 IPUs
+LOCAL_RANK: 0 - CUDA_VISIBLE_DEVICES: [0]
+
+  | Name | Type                    | Params
+-------------------------------------------------
+0 | net  | CIRLWaypointSpeedPolicy | 12.3 M
+-------------------------------------------------
+12.3 M    Trainable params
+0         Non-trainable params
+12.3 M    Total params
+49.359    Total estimated model params size (MB)
+/storage/home/hcoda1/4/hmanjunatha6/.conda/envs/carla/lib/python3.9/site-packages/pytorch_lightning/callbacks/model_checkpoint.py:631: UserWarning: Checkpoint directory /storage/scratch1/4/hmanjunatha6/carla-imitation-learning/logs/2022-10-15/IMITATION exists and is not empty.
+  rank_zero_warn(f"Checkpoint directory {dirpath} exists and is not empty.")
+pygame 2.1.2 (SDL 2.0.16, Python 3.9.10)
+Hello from the pygame community. https://www.pygame.org/contribute.html
+[1;32mRunning the block    |  imitation_with_basenet_speed_gru[0m
+Epoch     9: reducing learning rate of group 0 to 9.5000e-05.
+=>> PBS: job killed: walltime 60047 exceeded limit 60000
+---------------------------------------
+Begin PBS Epilogue Sat Oct 15 21:10:24 EDT 2022
+Job ID:     5051620.sched-torque.pace.gatech.edu
+User ID:    hmanjunatha6
+Job name:   imitation
+Resources:  nodes=1:ppn=4:gpus=1:TeslaV100-16GB,pmem=8gb,walltime=16:40:00,neednodes=1:ppn=4:gpus=1:TeslaV100-16GB
+Rsrc Used:  cput=19:42:15,vmem=38311944kb,walltime=16:40:47,mem=2749564kb,energy_used=0
+Queue:      inferno
+Nodes:     
+atl1-1-02-005-27.pace.gatech.edu
+End PBS Epilogue Sat Oct 15 21:10:24 EDT 2022
 ---------------------------------------

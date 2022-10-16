@@ -22,7 +22,8 @@ from src.architectures.nets import (
     CNNAutoEncoder,
     CIRLCARNet,
     CIRLBasePolicy,
-    CIRLRegressorPolicy,
+    CIRLWaypointPolicy,
+    CIRLWaypointSpeedPolicy,
 )
 
 
@@ -64,8 +65,56 @@ with skip_run('skip', 'imitation_with_basenet_gru') as check, check():
     )
 
     # Load the network
-    net = CIRLRegressorPolicy(cfg)
+    net = CIRLWaypointPolicy(cfg)
     # output = net(net.example_input_array, net.example_command)
+
+    # Dataloader
+    data_loader = imitation_dataset.webdataset_data_iterator(cfg)
+    if cfg['check_point_path'] is None:
+        model = Imitation(cfg, net, data_loader)
+    else:
+        model = Imitation.load_from_checkpoint(
+            cfg['check_point_path'], hparams=cfg, net=net, data_loader=data_loader,
+        )
+    # Trainer
+    trainer = pl.Trainer(
+        gpus=gpus,
+        max_epochs=cfg['NUM_EPOCHS'],
+        logger=logger,
+        callbacks=[checkpoint_callback],
+        enable_progress_bar=False,
+    )
+
+    trainer.fit(model)
+
+with skip_run('skip', 'imitation_with_basenet_speed_gru') as check, check():
+    # Load the configuration
+    cfg = yaml.load(open('configs/imitation.yaml'), Loader=yaml.SafeLoader)
+    cfg['logs_path'] = cfg['logs_path'] + str(date.today()) + '/IMITATION'
+
+    # Random seed
+    gpus = get_num_gpus()
+    torch.manual_seed(cfg['pytorch_seed'])
+
+    # Checkpoint
+    navigation_type = cfg['navigation_types'][0]
+    cfg['raw_data_path'] = cfg['raw_data_path'] + f'/{navigation_type}'
+
+    checkpoint_callback = pl.callbacks.ModelCheckpoint(
+        monitor='losses/val_loss',
+        dirpath=cfg['logs_path'],
+        save_top_k=1,
+        filename=f'imitation_{navigation_type}',
+        mode='min',
+        save_last=True,
+    )
+    logger = pl.loggers.TensorBoardLogger(
+        cfg['logs_path'], name=f'imitation_{navigation_type}'
+    )
+
+    # Load the network
+    net = CIRLWaypointSpeedPolicy(cfg)
+    output = net(net.example_input_array, net.example_command)
 
     # Dataloader
     data_loader = imitation_dataset.webdataset_data_iterator(cfg)
@@ -101,12 +150,12 @@ with skip_run('skip', 'basenet_gru_validation') as check, check():
 
     # Load the network
     restore_config = {
-        'checkpoint_path': f'logs/2022-10-06/IMITATION/imitation_{navigation_type}.ckpt'
+        'checkpoint_path': f'logs/2022-10-13/IMITATION/imitation_{navigation_type}.ckpt'
     }
     model = Imitation.load_from_checkpoint(
         restore_config['checkpoint_path'],
         hparams=cfg,
-        net=CIRLRegressorPolicy(cfg),
+        net=CIRLWaypointPolicy(cfg),
         data_loader=None,
     )
     model.eval()
@@ -120,11 +169,18 @@ with skip_run('skip', 'basenet_gru_validation') as check, check():
     predicted_waypoints = []
     true_waypoints = []
     test = []
+    speed_pred = []
+    speed = []
     for i, data in enumerate(dataset):
+
         images, commands, actions = data[0], data[1], data[2]
-        out = model(images.unsqueeze(0), torch.tensor(commands).unsqueeze(0))
-        actions = actions.reshape(-1, 2).detach().numpy()
-        out = out.reshape(-1, 2).detach().numpy()
+        output = model(images.unsqueeze(0), torch.tensor(commands).unsqueeze(0))
+        actions = actions[0].reshape(-1, 2).detach().numpy()
+        out = output[0].reshape(-1, 2).detach().numpy()
+
+        # Speed
+        speed_pred.append(output[1].detach().numpy())
+        speed.append(data[3]['speed'])
 
         # Waypoints from the data
         test.append(data[3]['waypoints'])
@@ -138,6 +194,10 @@ with skip_run('skip', 'basenet_gru_validation') as check, check():
 
         if i > 1000:
             break
+
+    plt.plot(np.arange(0, len(speed)), speed_pred)
+    plt.plot(np.arange(0, len(speed)), speed)
+    plt.show()
 
     true_waypoints = np.vstack(true_waypoints)
     plt.scatter(true_waypoints[:, 0], true_waypoints[:, 1])
@@ -168,10 +228,13 @@ with skip_run('skip', 'dataset_analysis') as check, check():
     location = []
     reprojected = []
     direction = []
+    speed = []
 
     for i, data in enumerate(dataset):
         data = data['json'][0]
         waypoints = data['waypoints']
+        if data['modified_direction'] == 2:
+            speed.append(np.round(data['speed'], 3))
         direction.append(np.array(data['moving_direction']))
         projected_ego = imitation_dataset.project_to_ego_frame(data)
         projected_world = imitation_dataset.project_to_world_frame(projected_ego, data)
@@ -182,19 +245,23 @@ with skip_run('skip', 'dataset_analysis') as check, check():
             break
 
     test_way = np.array(sum(waypoint_data, []))
+    speed = np.array(speed)
     directions = np.array(direction)
     test_loc = np.array(location)
     reproj_test = np.concatenate(reprojected)
-    plt.quiver(
-        test_loc[:, 0],
-        test_loc[:, 1],
-        directions[:, 0],
-        directions[:, 1],
-        linewidths=10,
-    )
-    plt.scatter(test_way[:, 0], test_way[:, 1])
+
+    fig, ax = plt.subplots()
+    # ax.quiver(
+    #     test_loc[:, 0],
+    #     test_loc[:, 1],
+    #     directions[:, 0],
+    #     directions[:, 1],
+    #     linewidths=10,
+    # )
+    ax.scatter(test_way[:, 0], test_way[:, 1])
+    plt.hist(speed)
     # plt.scatter(test_loc[:, 0], test_loc[:, 1], marker='s')
-    plt.scatter(reproj_test[:, 0], reproj_test[:, 1], s=10, marker='s')
+    ax.scatter(reproj_test[:, 0], reproj_test[:, 1], s=10, marker='s')
     plt.show()
 
 with skip_run('skip', 'imitation_with_carnet') as check, check():
@@ -285,13 +352,13 @@ with skip_run('skip', 'benchmark_gru_model') as check, check():
 
         # Update the model
         restore_config = {
-            'checkpoint_path': f'logs/2022-10-06/IMITATION//imitation_{navigation_type}.ckpt'
+            'checkpoint_path': f'logs/2022-10-15/IMITATION//imitation_{navigation_type}-v1.ckpt'
         }
 
         model = Imitation.load_from_checkpoint(
             restore_config['checkpoint_path'],
             hparams=cfg,
-            net=CIRLRegressorPolicy(cfg),
+            net=CIRLWaypointPolicy(cfg),
             data_loader=None,
         )
 
@@ -379,7 +446,7 @@ with skip_run('skip', 'summarize_benchmark') as check, check():
     for town, weather, navigation_type in itertools.product(
         towns, weathers, navigation_types
     ):
-        path = f'logs/benchmark_results/{town}_{navigation_type}_{weather}/measurements.csv'
+        path = f'logs/benchmark_results/{town}_{navigation_type}_{weather}_10/measurements.csv'
         print('-' * 32)
         print(town, weather, navigation_type)
         summarize(path)

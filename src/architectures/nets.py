@@ -208,7 +208,7 @@ class CNNAutoEncoder(pl.LightningModule):
 
 
 class MLP(pl.LightningModule):
-    def __init__(self, layer_size, output_size, dropout):
+    def __init__(self, layer_size, output_size, dropout, reduce_factor=2):
         super(MLP, self).__init__()
         self.output_size = output_size
         self.layer_size = layer_size
@@ -217,9 +217,9 @@ class MLP(pl.LightningModule):
         self.mlp = nn.Sequential(
             nn.LazyLinear(self.layer_size),
             nn.ReLU(),
-            nn.Linear(self.layer_size, self.layer_size // 2),
+            nn.Linear(self.layer_size, self.layer_size // reduce_factor),
             nn.ReLU(),
-            nn.Linear(self.layer_size // 2, output_size),
+            nn.Linear(self.layer_size // reduce_factor, output_size),
             nn.ReLU(),
         )
 
@@ -453,30 +453,72 @@ class AutoRegressorBranchNet(pl.LightningModule):
         self.layer_size = 512
         self.dropout = dropout
 
-        # For brevity
-        self.right_turn = AutoRegressor(hparams, self.layer_size)
-        self.left_turn = AutoRegressor(hparams, self.layer_size)
-        self.straight = AutoRegressor(hparams, self.layer_size)
-        self.lane_follow = AutoRegressor(hparams, self.layer_size)
+        # Four branches for waypoint prediction
+        self.waypoints_branch = nn.ModuleList(
+            [AutoRegressor(hparams, self.layer_size) for i in range(4)]
+        )
 
-        self.branch = nn.ModuleList(
-            [self.right_turn, self.left_turn, self.straight, self.lane_follow]
+        # Four branches for speed prediction
+        self.speed_branch = nn.ModuleList(
+            [MLP(self.layer_size, 1, dropout=0.0) for i in range(4)]
         )
 
     def forward(self, x, command):
-        out = torch.cat(
-            [self.branch[i - 1](x_in) for x_in, i in zip(x, command.to(torch.int))]
+        waypoints = torch.cat(
+            [
+                self.waypoints_branch[i - 1](x_in)
+                for x_in, i in zip(x, command.to(torch.int))
+            ]
         )
-        return out
+
+        # Speed prediction
+        speed = torch.cat(
+            [
+                self.speed_branch[i - 1](x_in)
+                for x_in, i in zip(x, command.to(torch.int))
+            ]
+        )
+        return waypoints, speed
 
 
-class CIRLRegressorPolicy(pl.LightningModule):
+class CIRLWaypointPolicy(pl.LightningModule):
     """A simple convolution neural network"""
 
     def __init__(self, model_config):
-        super(CIRLRegressorPolicy, self).__init__()
+        super(CIRLWaypointPolicy, self).__init__()
 
         # Parameters
+        self.cfg = model_config
+        image_size = self.cfg['image_resize']
+        obs_size = self.cfg['obs_size']
+        n_actions = self.cfg['n_actions']
+        dropout = self.cfg['DROP_OUT']
+
+        # Example inputs
+        self.example_input_array = torch.randn(
+            (5, obs_size, image_size[1], image_size[2])
+        )
+        self.example_command = torch.tensor([1, 0, 2, 3, 1])
+
+        self.back_bone_net = BaseResNet(obs_size)
+        self.action_net = AutoRegressorBranchNet(dropout=dropout, hparams=model_config)
+
+    def forward(self, x, command):
+        # Testing
+        # interactive_show_grid(x[0])
+        embedding = self.back_bone_net(x)
+        actions = self.action_net(embedding, command)
+        return actions
+
+
+class CIRLWaypointSpeedPolicy(pl.LightningModule):
+    """A simple convolution neural network"""
+
+    def __init__(self, model_config):
+        super(CIRLWaypointSpeedPolicy, self).__init__()
+
+        # Parameters
+        self.layer_size = 512
         self.cfg = model_config
         image_size = self.cfg['image_resize']
         obs_size = self.cfg['obs_size']

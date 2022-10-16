@@ -24,6 +24,15 @@ class WeightedMSE(torch.nn.MSELoss):
             return torch.mean(super().forward(input, target))
 
 
+class RMSELoss(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.mse = nn.MSELoss()
+
+    def forward(self, y_pred, y_true):
+        return torch.sqrt(self.mse(y_pred, y_true))
+
+
 class Autoencoder(pl.LightningModule):
     def __init__(self, hparams, net, data_loader):
         super(Autoencoder, self).__init__()
@@ -80,7 +89,7 @@ class Autoencoder(pl.LightningModule):
             'monitor': 'losses/val_loss',
         }
 
-        if self.h_params['check_point_path'] is None:
+        if self.h_params['return_scheduler']:
             return [optimizer], [scheduler]
         else:
             return [optimizer]
@@ -105,9 +114,12 @@ class Imitation(pl.LightningModule):
 
         # Predict and calculate loss
         output = self.forward(images, command)
-        criterion = nn.MSELoss()
-        # criterion = WeightedMSE(weights=torch.tensor([1, 1, 1]).to(self.device))
-        loss = criterion(output, action)
+        criterion1 = RMSELoss()
+        criterion2 = nn.MSELoss()
+        loss1 = criterion1(output[0], action[0]) + criterion2(output[0], action[0])
+        loss2 = criterion1(output[1], action[1]) + criterion2(output[1], action[1])
+
+        loss = loss1 + loss2
 
         self.log('losses/train_loss', loss, on_step=False, on_epoch=True)
         return loss
@@ -117,9 +129,12 @@ class Imitation(pl.LightningModule):
 
         # Predict and calculate loss
         output = self.forward(images, command)
-        criterion = nn.MSELoss()
-        # criterion = WeightedMSE(weights=torch.tensor([1, 1, 1]).to(self.device))
-        loss = criterion(output, action)
+        criterion1 = RMSELoss()
+        criterion2 = nn.MSELoss()
+        loss1 = criterion1(output[0], action[0]) + criterion2(output[0], action[0])
+        loss2 = criterion1(output[1], action[1]) + criterion2(output[1], action[1])
+
+        loss = loss1 + loss2
 
         self.log('losses/val_loss', loss, on_step=False, on_epoch=True)
         return loss
@@ -143,7 +158,7 @@ class Imitation(pl.LightningModule):
             'monitor': 'losses/val_loss',
         }
 
-        if self.h_params['check_point_path'] is None:
+        if self.h_params['return_scheduler']:
             return [optimizer], [scheduler]
         else:
             return [optimizer]
